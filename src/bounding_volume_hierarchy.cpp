@@ -1,4 +1,5 @@
 #include "bounding_volume_hierarchy.h"
+#include "bits/stdc++.h"
 #include "draw.h"
 #include "intersect.h"
 #include "scene.h"
@@ -11,20 +12,78 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
     // TODO: implement BVH construction.
+    this->m_pScene = pScene;
+    auto triangles = std::vector<glm::uvec2>();
+    for (uint i = 0; i < pScene->meshes.size(); ++i) {
+        auto mesh = pScene->meshes[i];
+        for (uint j = 0; j < mesh.triangles.size(); ++j) {
+            triangles.push_back(glm::uvec2 {mesh.triangles[j], i});
+        }
+    }
+    constructorHelper(triangles, 0);
+}
+
+glm::uvec3 getMedian(glm::uvec2 triangle, Scene& scene) {
+    auto mesh = scene.meshes[triangle.y];
+    auto tr = mesh.triangles[triangle.x]; // uvec3, indices of points of a single triangle
+    auto p1 = mesh.vertices[tr.x], p2 = mesh.vertices[tr.y], p3 = mesh.vertices[tr.z];
+    return (p1 + p2 + p3) / 3;
+}
+
+AxisAlignedBox getBox(const std::vector<glm::uvec2>& triangles, const Scene& scene) {
+    glm::vec3 lower = {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+    glm::vec3 upper = {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
+
+    for (auto triangle : triangles) {
+        auto mesh = scene.meshes[triangle.y];
+        auto tr = mesh.triangles[triangle.x];
+        auto v1 = mesh.vertices[tr.x].position, v2 = mesh.vertices[tr.y].position, v3 = mesh.vertices[tr.z].position;
+        upper.x = std::max(std::max(upper.x, v1.x), std::max(v2.x, v3.x) );
+        upper.x = std::max(std::max(upper.y, v1.y), std::max(v2.y, v3.y) );
+        upper.x = std::max(std::max(upper.z, v1.z), std::max(v2.z, v3.z) );
+        
+        lower.x = std::min(std::min(upper.x, v1.x), std::min(v2.x, v3.x) );
+        lower.x = std::min(std::min(upper.y, v1.y), std::min(v2.y, v3.y) );
+        lower.x = std::min(std::min(upper.z, v1.z), std::min(v2.z, v3.z) );
+    }
+    return {lower, upper};
+}
+
+Node getNode(const std::vector<glm::uvec2>& triangles, const Scene& scene) {
+    return {false, triangles, getBox(triangles, scene)};
+}
+
+void BoundingVolumeHierarchy::constructorHelper(std::vector<glm::uvec2> triangles, int whichAxis) {
+    if (triangles.size() <= 20) {
+        this->nodes.push_back(getNode(triangles, *this->m_pScene));
+    }
+
+    sort(triangles.begin(), triangles.end(), [this, whichAxis](glm::uvec2 triangle1, glm::uvec2 triangle2) {
+        auto tr1 = this->m_pScene->meshes[triangle1.y].triangles[triangle1.x];
+        auto tr2 = this->m_pScene->meshes[triangle2.y].triangles[triangle2.x];
+        return tr1[whichAxis] < tr2[whichAxis];
+    });
+
+    auto median = triangles.size() / 2;
+    std::vector<glm::uvec2> left(triangles.begin(), triangles.begin() + median);
+    std::vector<glm::uvec2> right(triangles.begin() + median, triangles.end());
+    
+    this->constructorHelper(left, (whichAxis + 1) % 3);
+    this->constructorHelper(right, (whichAxis + 1) % 3);
 }
 
 // Return the depth of the tree that you constructed. This is used to tell the
 // slider in the UI how many steps it should display for Visual Debug 1.
 int BoundingVolumeHierarchy::numLevels() const
 {
-    return 1;
+    return this->m_numLevels;
 }
 
 // Return the number of leaf nodes in the tree that you constructed. This is used to tell the
 // slider in the UI how many steps it should display for Visual Debug 2.
 int BoundingVolumeHierarchy::numLeaves() const
 {
-    return 1;
+    return this->m_numLeaves;
 }
 
 // Use this function to visualize your BVH. This is useful for debugging. Use the functions in

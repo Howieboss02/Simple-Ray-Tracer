@@ -7,10 +7,23 @@
 // Forward declaration.
 struct Scene;
 
+/**
+ * Node struct
+ * triangles - indexes of vertices in the mesh. first coords (x) are for the triangle index
+ * and the second (y) coord for the index of the mesh inside the scene mesh vector
+ * If node is NOT leaf it uses only the first coordinate to store indices of the child nodes
+ */
+struct Node {
+    bool isLeaf = false;
+    std::vector<glm::uvec2> triangles;
+    AxisAlignedBox box;
+};
+
 class BoundingVolumeHierarchy {
 public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
     BoundingVolumeHierarchy(Scene* pScene);
+    void constructorHelper(std::vector<glm::uvec2> triangles, int whichAxis);
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;
@@ -34,4 +47,6 @@ private:
     int m_numLevels;
     int m_numLeaves;
     Scene* m_pScene;
+
+    std::vector<Node> nodes;
 };
