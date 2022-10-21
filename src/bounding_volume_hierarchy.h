@@ -20,17 +20,18 @@ struct TriangleOrNode {
 
 /**
  * Node struct
+ * level - level of the node from bottom of its subtree. i.e. leafs have 0 level
  * triangles - if node is leaf it stores indexes of vertices in the mesh (meshIndex and triangleIndex)
  *     and the second (y) coord for the index of the mesh inside the scene mesh vector.
  *     If node is NOT leaf it uses only the nodeIndex to store indices of the child nodes.
  */
 struct Node {
-    size_t depth = 0;
+    size_t level = 0;
     std::vector<TriangleOrNode> triangles;
     AxisAlignedBox box;
     bool isLeaf()
     {
-        return this->depth == 0;
+        return this->level == 0;
     }
 };
 

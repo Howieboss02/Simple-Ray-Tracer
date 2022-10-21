@@ -16,11 +16,11 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     for (size_t i = 0; i < pScene->meshes.size(); ++i) {
         auto mesh = pScene->meshes[i];
         for (size_t j = 0; j < mesh.triangles.size(); ++j) {
-            triangles.push_back(TriangleOrNode { i, j,0 });
+            triangles.push_back(TriangleOrNode { i, j, 0 });
         }
     }
     constructorHelper(triangles, 0);
-    this->m_numLevels = this->nodes.back().depth;
+    this->m_numLevels = this->nodes.back().level;
 }
 
 glm::vec3 getMedian(TriangleOrNode triangle, Scene& scene)
@@ -43,12 +43,12 @@ AxisAlignedBox getBox(const std::vector<TriangleOrNode>& triangles, const Scene&
         auto tr = mesh.triangles[triangle.triangleIndex];
         auto v1 = mesh.vertices[tr.x].position, v2 = mesh.vertices[tr.y].position, v3 = mesh.vertices[tr.z].position;
         upper.x = std::max(std::max(upper.x, v1.x), std::max(v2.x, v3.x));
-        upper.x = std::max(std::max(upper.y, v1.y), std::max(v2.y, v3.y));
-        upper.x = std::max(std::max(upper.z, v1.z), std::max(v2.z, v3.z));
+        upper.y = std::max(std::max(upper.y, v1.y), std::max(v2.y, v3.y));
+        upper.z = std::max(std::max(upper.z, v1.z), std::max(v2.z, v3.z));
 
         lower.x = std::min(std::min(upper.x, v1.x), std::min(v2.x, v3.x));
-        lower.x = std::min(std::min(upper.y, v1.y), std::min(v2.y, v3.y));
-        lower.x = std::min(std::min(upper.z, v1.z), std::min(v2.z, v3.z));
+        lower.y = std::min(std::min(upper.y, v1.y), std::min(v2.y, v3.y));
+        lower.z = std::min(std::min(upper.z, v1.z), std::min(v2.z, v3.z));
     }
     return { lower, upper };
 }
@@ -74,9 +74,9 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
     auto leftIndex = this->constructorHelper(left, (whichAxis + 1) % 3);
     auto rightIndex = this->constructorHelper(right, (whichAxis + 1) % 3);
 
-    auto depth = std::max(this->nodes[leftIndex].depth, this->nodes[rightIndex].depth) + 1;
+    auto level = std::max(this->nodes[leftIndex].level, this->nodes[rightIndex].level) + 1;
     auto children = std::vector<TriangleOrNode> { { 0, 0, leftIndex }, { 0, 0, rightIndex } };
-    this->nodes.push_back({ depth, children, getBox(triangles, *this->m_pScene) });
+    this->nodes.push_back({ level, children, getBox(triangles, *this->m_pScene) });
     return this->nodes.size() - 1;
 }
 
@@ -103,10 +103,14 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
     // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
-    // Draw the AABB as a (white) wireframe box.
-    AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
-    // drawAABB(aabb, DrawMode::Wireframe);
-    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+    auto color = glm::vec3(0.05f, 1.0f, 0.05f);
+    for (auto& node : this->nodes) {
+        if (node.level == level) {
+            // Draw the AABB as a (white) wireframe box.
+            // drawAABB(aabb, DrawMode::Wireframe);
+            drawAABB(node.box, DrawMode::Filled, color, 0.1f);
+        }
+    }
 }
 
 // Use this function to visualize your leaf nodes. This is useful for debugging. The function
