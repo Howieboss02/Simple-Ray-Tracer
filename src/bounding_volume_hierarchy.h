@@ -7,21 +7,31 @@
 // Forward declaration.
 struct Scene;
 
+/**
+ * meshIndex - index of the mesh inside mesh vector
+ * triangleIndex - index of triangle inside this mesh
+ * nodeIndex - index of node inside BVH node vector
+ */
 struct TriangleOrNode {
     size_t meshIndex;
     size_t triangleIndex;
     size_t nodeIndex;
 };
+
 /**
  * Node struct
- * triangles - indexes of vertices in the mesh. first coords (x) are for the triangle index
- *     and the second (y) coord for the index of the mesh inside the scene mesh vector
- *     If node is NOT leaf it uses only the first coordinate to store indices of the child nodes
+ * triangles - if node is leaf it stores indexes of vertices in the mesh (meshIndex and triangleIndex)
+ *     and the second (y) coord for the index of the mesh inside the scene mesh vector.
+ *     If node is NOT leaf it uses only the nodeIndex to store indices of the child nodes.
  */
 struct Node {
-    bool isLeaf = false;
+    size_t depth = 0;
     std::vector<TriangleOrNode> triangles;
     AxisAlignedBox box;
+    bool isLeaf()
+    {
+        return this->depth == 0;
+    }
 };
 
 class BoundingVolumeHierarchy {
@@ -48,7 +58,6 @@ public:
     // Only find hits if they are closer than t stored in the ray and the intersection
     // is on the correct side of the origin (the new t >= 0).
     bool intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const;
-
 
 private:
     int m_numLevels;

@@ -20,6 +20,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         }
     }
     constructorHelper(triangles, 0);
+    this->m_numLevels = this->nodes.back().depth;
 }
 
 glm::vec3 getMedian(TriangleOrNode triangle, Scene& scene)
@@ -55,15 +56,15 @@ AxisAlignedBox getBox(const std::vector<TriangleOrNode>& triangles, const Scene&
 size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, int whichAxis)
 {
     if (triangles.size() <= 20) {
-        this->nodes.push_back({ true, triangles, getBox(triangles, *this->m_pScene) });
+        this->nodes.push_back({ 0, triangles, getBox(triangles, *this->m_pScene) });
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
     }
 
     std::sort(triangles.begin(), triangles.end(), [this, whichAxis](TriangleOrNode triangle1, TriangleOrNode triangle2) {
-        auto& tr1 = this->m_pScene->meshes[triangle1.meshIndex].triangles[triangle1.triangleIndex];
-        auto& tr2 = this->m_pScene->meshes[triangle2.meshIndex].triangles[triangle2.triangleIndex];
-        return tr1[whichAxis] < tr2[whichAxis];
+        auto median1 = getMedian(triangle1, *this->m_pScene);
+        auto median2 = getMedian(triangle2, *this->m_pScene);
+        return median1[whichAxis] < median2[whichAxis];
     });
 
     auto median = triangles.size() / 2;
@@ -72,9 +73,10 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
 
     auto leftIndex = this->constructorHelper(left, (whichAxis + 1) % 3);
     auto rightIndex = this->constructorHelper(right, (whichAxis + 1) % 3);
-    auto children = std::vector<TriangleOrNode> { { 0, 0, leftIndex }, { 0, 0, rightIndex } };
 
-    this->nodes.push_back({ false, children, getBox(triangles, *this->m_pScene) });
+    auto depth = std::max(this->nodes[leftIndex].depth, this->nodes[rightIndex].depth) + 1;
+    auto children = std::vector<TriangleOrNode> { { 0, 0, leftIndex }, { 0, 0, rightIndex } };
+    this->nodes.push_back({ depth, children, getBox(triangles, *this->m_pScene) });
     return this->nodes.size() - 1;
 }
 
