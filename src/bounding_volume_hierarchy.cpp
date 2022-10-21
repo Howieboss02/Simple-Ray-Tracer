@@ -1,5 +1,4 @@
 #include "bounding_volume_hierarchy.h"
-#include "bits/stdc++.h"
 #include "draw.h"
 #include "intersect.h"
 #include "scene.h"
@@ -14,20 +13,22 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     // TODO: implement BVH construction.
     this->m_pScene = pScene;
     auto triangles = std::vector<glm::uvec2>();
-    for (uint i = 0; i < pScene->meshes.size(); ++i) {
+    for (size_t i = 0; i < pScene->meshes.size(); ++i) {
         auto mesh = pScene->meshes[i];
-        for (uint j = 0; j < mesh.triangles.size(); ++j) {
+        for (size_t j = 0; j < mesh.triangles.size(); ++j) {
             triangles.push_back(glm::uvec2 {mesh.triangles[j], i});
         }
     }
     constructorHelper(triangles, 0);
 }
 
-glm::uvec3 getMedian(glm::uvec2 triangle, Scene& scene) {
+glm::vec3 getMedian(glm::uvec2 triangle, Scene& scene) {
     auto mesh = scene.meshes[triangle.y];
     auto tr = mesh.triangles[triangle.x]; // uvec3, indices of points of a single triangle
-    auto p1 = mesh.vertices[tr.x], p2 = mesh.vertices[tr.y], p3 = mesh.vertices[tr.z];
-    return (p1 + p2 + p3) / 3;
+    auto p1 = mesh.vertices[tr.x].position;
+    auto p2 = mesh.vertices[tr.y].position;
+    auto p3 = mesh.vertices[tr.z].position;
+    return (p1 + p2 + p3) / 3.0f;
 }
 
 AxisAlignedBox getBox(const std::vector<glm::uvec2>& triangles, const Scene& scene) {
@@ -49,13 +50,10 @@ AxisAlignedBox getBox(const std::vector<glm::uvec2>& triangles, const Scene& sce
     return {lower, upper};
 }
 
-Node getNode(const std::vector<glm::uvec2>& triangles, const Scene& scene) {
-    return {false, triangles, getBox(triangles, scene)};
-}
-
-void BoundingVolumeHierarchy::constructorHelper(std::vector<glm::uvec2> triangles, int whichAxis) {
+size_t BoundingVolumeHierarchy::constructorHelper(const std::vector<glm::uvec2>& triangles, int whichAxis) {
     if (triangles.size() <= 20) {
-        this->nodes.push_back(getNode(triangles, *this->m_pScene));
+        this->nodes.push_back({true, triangles, getBox(triangles, *this->m_pScene)});
+        return this->nodes.size() - 1;
     }
 
     sort(triangles.begin(), triangles.end(), [this, whichAxis](glm::uvec2 triangle1, glm::uvec2 triangle2) {
@@ -68,8 +66,12 @@ void BoundingVolumeHierarchy::constructorHelper(std::vector<glm::uvec2> triangle
     std::vector<glm::uvec2> left(triangles.begin(), triangles.begin() + median);
     std::vector<glm::uvec2> right(triangles.begin() + median, triangles.end());
     
-    this->constructorHelper(left, (whichAxis + 1) % 3);
-    this->constructorHelper(right, (whichAxis + 1) % 3);
+    auto leftIndex = this->constructorHelper(left, (whichAxis + 1) % 3);
+    auto rightIndex = this->constructorHelper(right, (whichAxis + 1) % 3);
+    auto children = std::vector<glm::uvec2> {{leftIndex, 0}, {rightIndex, 0}};
+
+    this->nodes.push_back({false, children, getBox(triangles, *this->m_pScene)});
+    return this->nodes.size() - 1;
 }
 
 // Return the depth of the tree that you constructed. This is used to tell the
