@@ -7,6 +7,11 @@
 // Forward declaration.
 struct Scene;
 
+struct TriangleOrNode {
+    size_t meshIndex;
+    size_t triangleIndex;
+    size_t nodeIndex;
+};
 /**
  * Node struct
  * triangles - indexes of vertices in the mesh. first coords (x) are for the triangle index
@@ -15,7 +20,7 @@ struct Scene;
  */
 struct Node {
     bool isLeaf = false;
-    std::vector<glm::uvec2> triangles;
+    std::vector<TriangleOrNode> triangles;
     AxisAlignedBox box;
 };
 
@@ -25,7 +30,7 @@ public:
     BoundingVolumeHierarchy(Scene* pScene);
 
     // construction helper, returns index of last added node
-    size_t constructorHelper(const std::vector<glm::uvec2>& triangles, int whichAxis);
+    size_t constructorHelper(std::vector<TriangleOrNode>& triangles, int whichAxis);
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;
