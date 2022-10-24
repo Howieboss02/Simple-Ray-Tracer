@@ -29,6 +29,7 @@ struct Node {
     size_t level = 0;
     std::vector<TriangleOrNode> triangles;
     AxisAlignedBox box;
+    // bool isLeaf = 0;
     bool isLeaf()
     {
         return this->level == 0;
@@ -41,7 +42,7 @@ public:
     BoundingVolumeHierarchy(Scene* pScene);
 
     // construction helper, returns index of last added node
-    size_t constructorHelper(std::vector<TriangleOrNode>& triangles, size_t whichAxis);
+    size_t constructorHelper(std::vector<TriangleOrNode>& triangles, int whichAxis);
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;

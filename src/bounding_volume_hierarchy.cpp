@@ -5,6 +5,7 @@
 #include "scene.h"
 #include "texture.h"
 #include <algorithm>
+#include <iostream>
 #include <glm/glm.hpp>
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
@@ -21,6 +22,12 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     }
     constructorHelper(triangles, 0);
     this->m_numLevels = this->nodes.back().level;
+    for (auto node : this->nodes) {
+        // std:: cout << node.level << " ";
+        node.level = this->m_numLevels - node.level;
+        // std:: cout << node.level << "\n";
+
+    }
 }
 
 glm::vec3 getMedian(TriangleOrNode triangle, Scene& scene)
@@ -53,9 +60,9 @@ AxisAlignedBox getBox(const std::vector<TriangleOrNode>& triangles, const Scene&
     return { lower, upper };
 }
 // which axis can work as a level indicator
-size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, size_t whichAxis)
+size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, int whichAxis)
 {
-    if (triangles.size() < 2) {
+    if (triangles.size() == 1) {
         this->nodes.push_back({ 0, triangles, getBox(triangles, *this->m_pScene) });
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
