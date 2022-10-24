@@ -103,12 +103,12 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
     // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
-    auto color = glm::vec3(0.05f, 1.0f, 0.05f);
+    auto color = glm::vec3(1.0f, 1.0f, 1.0f);
     for (auto& node : this->nodes) {
         if (node.level == level) {
             // Draw the AABB as a (white) wireframe box.
             // drawAABB(aabb, DrawMode::Wireframe);
-            drawAABB(node.box, DrawMode::Filled, color, 0.1f);
+            drawAABB(node.box, DrawMode::Wireframe, color, 1.0f);
         }
     }
 }
