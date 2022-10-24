@@ -46,16 +46,16 @@ AxisAlignedBox getBox(const std::vector<TriangleOrNode>& triangles, const Scene&
         upper.y = std::max(std::max(upper.y, v1.y), std::max(v2.y, v3.y));
         upper.z = std::max(std::max(upper.z, v1.z), std::max(v2.z, v3.z));
 
-        lower.x = std::min(std::min(upper.x, v1.x), std::min(v2.x, v3.x));
-        lower.y = std::min(std::min(upper.y, v1.y), std::min(v2.y, v3.y));
-        lower.z = std::min(std::min(upper.z, v1.z), std::min(v2.z, v3.z));
+        lower.x = std::min(std::min(lower.x, v1.x), std::min(v2.x, v3.x));
+        lower.y = std::min(std::min(lower.y, v1.y), std::min(v2.y, v3.y));
+        lower.z = std::min(std::min(lower.z, v1.z), std::min(v2.z, v3.z));
     }
     return { lower, upper };
 }
-
-size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, int whichAxis)
+// which axis can work as a level indicator
+size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, size_t whichAxis)
 {
-    if (triangles.size() <= 20) {
+    if (triangles.size() < 2) {
         this->nodes.push_back({ 0, triangles, getBox(triangles, *this->m_pScene) });
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
