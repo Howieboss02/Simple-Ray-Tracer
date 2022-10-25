@@ -80,7 +80,6 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                     hitInfo.material = mesh.material;
                     hit = true;
-                    hitInfo.normal = glm::cross(v1.position - v0.position, v2.position - v0.position);
                 }
             }
         }
