@@ -31,8 +31,20 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
 
 const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
 {
-    // Do NOT use glm::reflect!! write your own code.
     Ray reflectionRay {};
-    // TODO: implement the reflection ray computation.
+    /*
+     Creating an offset since the origin of the reflected ray
+     is under the surface of the object and that affects the result
+     */
+    float offset = glm::pow(10, -5);
+
+    // Calculating the direction of the reflected ray using the formula for the reflection vector
+    reflectionRay.direction = glm::normalize(ray.direction) - 2.0f * glm::dot(glm::normalize(ray.direction), glm::normalize(hitInfo.normal)) * glm::normalize(hitInfo.normal);
+    // Vertex where the ray hits the plane transposed outside the surface by an offset.
+    reflectionRay.origin = ray.origin + ray.direction * ray.t + offset * reflectionRay.direction;
+    // Setting the variable t to max.
+    reflectionRay.t = std::numeric_limits<float>::max();
+
     return reflectionRay;
+
 }
