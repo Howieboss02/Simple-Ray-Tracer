@@ -19,14 +19,20 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             // TODO: put your own implementation of recursive ray tracing here.
         }
 
-        // Draw a white debug ray if the ray hits.
-        drawRay(ray, glm::vec3(1.0f));
+        // Draw a ray of the color of the surface if it hits the surface and the shading is enabled.
+        if(features.enableShading) {
+            drawRay(ray, Lo);
+        }
+        // Draw a black ray if the shading is disabled.
+        else{
+            drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
+        }
 
-        // Set the color of the pixel to white if the ray hits.
+        // Set the color of the pixel to the color of the surface if the ray hits.
         return Lo;
     } else {
-        // Draw a red debug ray if the ray missed.
-        drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
+        // Draw a white debug ray if the ray missed.
+        drawRay(ray, glm::vec3(1.0f, 1.0f, 1.0f));
         // Set the color of the pixel to black if the ray misses.
         return glm::vec3(0.0f);
     }
