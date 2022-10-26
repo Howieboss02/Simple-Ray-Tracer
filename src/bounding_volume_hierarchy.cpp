@@ -26,7 +26,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     }
     
     int maxLevel = 0;
-    constructorHelper(triangles, 0, 0);
+    constructorHelper(triangles,0, triangles.size(), 0, 0);
     setMaxLevels(0);
     // std::cout << this->m_numLeaves << std::endl;
     for (auto node : this->nodes) {
@@ -39,7 +39,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     std::cout << maxLevel << " " << numLevels() << std::endl;
 }
 
-glm::vec3 getMedian(TriangleOrNode triangle, Scene& scene)
+glm::vec3 getMedian(TriangleOrNode& triangle, Scene& scene)
 {
     auto mesh = scene.meshes[triangle.meshOrNodeIndex];
     auto tr = mesh.triangles[triangle.triangleIndex]; // uvec3, indices of points of a single triangle
@@ -49,12 +49,15 @@ glm::vec3 getMedian(TriangleOrNode triangle, Scene& scene)
     return (p1 + p2 + p3) / 3.0f;
 }
 
-AxisAlignedBox getBox(const std::vector<TriangleOrNode>& triangles, const Scene& scene)
+AxisAlignedBox getBox(
+        const std::vector<TriangleOrNode>::iterator begin,
+        const std::vector<TriangleOrNode>::iterator end,
+        const Scene& scene)
 {
     glm::vec3 lower = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
     glm::vec3 upper = { std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
-
-    for (auto triangle : triangles) {
+    for (auto it = begin; it != end; it += 1) {
+        auto triangle = *it;
         auto mesh = scene.meshes[triangle.meshOrNodeIndex];
         auto tr = mesh.triangles[triangle.triangleIndex];
         auto v1 = mesh.vertices[tr.x].position, v2 = mesh.vertices[tr.y].position, v3 = mesh.vertices[tr.z].position;
@@ -65,37 +68,37 @@ AxisAlignedBox getBox(const std::vector<TriangleOrNode>& triangles, const Scene&
         lower.x = std::min(std::min(lower.x, v1.x), std::min(v2.x, v3.x));
         lower.y = std::min(std::min(lower.y, v1.y), std::min(v2.y, v3.y));
         lower.z = std::min(std::min(lower.z, v1.z), std::min(v2.z, v3.z));
+
     }
     return { lower, upper };
 }
 // which axis can work as a depth indicator
-size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, int whichAxis, int level)
+size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, size_t left, size_t right, int whichAxis, int level)
 {
+    auto beginIt = triangles.begin() + left;
+    auto endIt = triangles.begin() + right;
     
     if (triangles.size() == 1 || level > 8 ) {
-        this->nodes.push_back({true, level, triangles, getBox(triangles, *this->m_pScene)});
+        this->nodes.push_back({true, level, triangles, getBox(beginIt, endIt, *this->m_pScene)});
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
     }
 
-    std::sort(triangles.begin(), triangles.end(), [this, whichAxis](TriangleOrNode triangle1, TriangleOrNode triangle2) {
+    std::sort(triangles.begin() + left, triangles.begin() + right, [this, whichAxis](TriangleOrNode& triangle1, TriangleOrNode& triangle2) {
         auto median1 = getMedian(triangle1, *this->m_pScene);
         auto median2 = getMedian(triangle2, *this->m_pScene);
         return median1[whichAxis] < median2[whichAxis];
     });
 
-    auto median = triangles.size() / 2;
-    std::vector<TriangleOrNode> left(triangles.begin(), triangles.begin() + median);
-    std::vector<TriangleOrNode> right(triangles.begin() + median, triangles.end());
-
-    auto leftIndex = this->constructorHelper(left, (whichAxis + 1) % 3, level + 1);
-    auto rightIndex = this->constructorHelper(right, (whichAxis + 1) % 3, level + 1);
+    size_t median = (left + right) / 2;
+    auto leftIndex = this->constructorHelper(triangles, left, median, (whichAxis + 1) % 3, level + 1);
+    auto rightIndex = this->constructorHelper(triangles, median, right, (whichAxis + 1) % 3, level + 1);
 
     // auto level = std::max(this->nodes[leftIndex].level, this->nodes[rightIndex].level) + 1;
     // auto level = whichAxis;
     // std::cout << level << "\n";
     auto children = std::vector<TriangleOrNode> { { leftIndex, 0 }, { rightIndex, 0 } };
-    this->nodes.push_back({ false, level, children, getBox(triangles, *this->m_pScene) });
+    this->nodes.push_back({ false, level, children, getBox(beginIt, endIt, *this->m_pScene) });
     return this->nodes.size() - 1;
 }
 
