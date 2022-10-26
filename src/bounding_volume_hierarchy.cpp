@@ -8,6 +8,10 @@
 #include <iostream>
 #include <glm/glm.hpp>
 
+void BoundingVolumeHierarchy::setMaxLevels(int level){
+    this->m_numLeaves = level;
+}
+
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
@@ -17,22 +21,27 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     for (size_t i = 0; i < pScene->meshes.size(); ++i) {
         auto mesh = pScene->meshes[i];
         for (size_t j = 0; j < mesh.triangles.size(); ++j) {
-            triangles.push_back(TriangleOrNode { i, j, 0 });
+            triangles.push_back(TriangleOrNode { i, j });
         }
     }
-    constructorHelper(triangles, 0);
-    this->m_numLevels = this->nodes.back().level;
+    
+    int maxLevel = 0;
+    constructorHelper(triangles, 0, 0);
+    setMaxLevels(0);
+    // std::cout << this->m_numLeaves << std::endl;
     for (auto node : this->nodes) {
-        // std:: cout << node.level << " ";
-        node.level = this->m_numLevels - node.level;
-        // std:: cout << node.level << "\n";
+        maxLevel = std::max(maxLevel, node.level);
 
+        // this->m_numLeaves = std::max(this->m_numLeaves, node.level);
+        // std::cout << this->m_numLeaves << " " << node.level << ";";
     }
+    setMaxLevels(maxLevel);
+    std::cout << maxLevel << " " << numLevels() << std::endl;
 }
 
 glm::vec3 getMedian(TriangleOrNode triangle, Scene& scene)
 {
-    auto mesh = scene.meshes[triangle.meshIndex];
+    auto mesh = scene.meshes[triangle.meshOrNodeIndex];
     auto tr = mesh.triangles[triangle.triangleIndex]; // uvec3, indices of points of a single triangle
     auto p1 = mesh.vertices[tr.x].position;
     auto p2 = mesh.vertices[tr.y].position;
@@ -46,7 +55,7 @@ AxisAlignedBox getBox(const std::vector<TriangleOrNode>& triangles, const Scene&
     glm::vec3 upper = { std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
 
     for (auto triangle : triangles) {
-        auto mesh = scene.meshes[triangle.meshIndex];
+        auto mesh = scene.meshes[triangle.meshOrNodeIndex];
         auto tr = mesh.triangles[triangle.triangleIndex];
         auto v1 = mesh.vertices[tr.x].position, v2 = mesh.vertices[tr.y].position, v3 = mesh.vertices[tr.z].position;
         upper.x = std::max(std::max(upper.x, v1.x), std::max(v2.x, v3.x));
@@ -59,11 +68,12 @@ AxisAlignedBox getBox(const std::vector<TriangleOrNode>& triangles, const Scene&
     }
     return { lower, upper };
 }
-// which axis can work as a level indicator
-size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, int whichAxis)
+// which axis can work as a depth indicator
+size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, int whichAxis, int level)
 {
-    if (triangles.size() == 1) {
-        this->nodes.push_back({ 0, triangles, getBox(triangles, *this->m_pScene) });
+    
+    if (triangles.size() == 1 || level > 8 ) {
+        this->nodes.push_back({true, level, triangles, getBox(triangles, *this->m_pScene)});
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
     }
@@ -78,12 +88,14 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
     std::vector<TriangleOrNode> left(triangles.begin(), triangles.begin() + median);
     std::vector<TriangleOrNode> right(triangles.begin() + median, triangles.end());
 
-    auto leftIndex = this->constructorHelper(left, (whichAxis + 1) % 3);
-    auto rightIndex = this->constructorHelper(right, (whichAxis + 1) % 3);
+    auto leftIndex = this->constructorHelper(left, (whichAxis + 1) % 3, level + 1);
+    auto rightIndex = this->constructorHelper(right, (whichAxis + 1) % 3, level + 1);
 
-    auto level = std::max(this->nodes[leftIndex].level, this->nodes[rightIndex].level) + 1;
-    auto children = std::vector<TriangleOrNode> { { 0, 0, leftIndex }, { 0, 0, rightIndex } };
-    this->nodes.push_back({ level, children, getBox(triangles, *this->m_pScene) });
+    // auto level = std::max(this->nodes[leftIndex].level, this->nodes[rightIndex].level) + 1;
+    // auto level = whichAxis;
+    // std::cout << level << "\n";
+    auto children = std::vector<TriangleOrNode> { { leftIndex, 0 }, { rightIndex, 0 } };
+    this->nodes.push_back({ false, level, children, getBox(triangles, *this->m_pScene) });
     return this->nodes.size() - 1;
 }
 
@@ -91,7 +103,9 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
 // slider in the UI how many steps it should display for Visual Debug 1.
 int BoundingVolumeHierarchy::numLevels() const
 {
-    return this->m_numLevels;
+    int maxLevel = 0;
+    for (auto node : this->nodes) maxLevel = std::max(maxLevel, node.level);
+    return maxLevel;
 }
 
 // Return the number of leaf nodes in the tree that you constructed. This is used to tell the
@@ -112,12 +126,15 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
 
     auto color = glm::vec3(1.0f, 1.0f, 1.0f);
     for (auto& node : this->nodes) {
+        // std::cout << node.level << "\n";
         if (node.level == level) {
+            // std::cout << node.level << " ";
             // Draw the AABB as a (white) wireframe box.
             // drawAABB(aabb, DrawMode::Wireframe);
             drawAABB(node.box, DrawMode::Wireframe, color, 1.0f);
         }
     }
+    // std::cout << std::endl << numLevels() << std::endl;
 }
 
 // Use this function to visualize your leaf nodes. This is useful for debugging. The function
@@ -129,11 +146,20 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // Draw the AABB as a transparent green box.
     // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
-
+    size_t count = 0;
+    for (auto& node : this->nodes) {
+        
+        if (node.isLeaf == 1) {
+            count++;
+            if(leafIdx + 1 == count){
+                drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 1.05f, 1.05f), 1.0f);
+            }
+        }
+    }
     // Draw the AABB as a (white) wireframe box.
-    AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
+    // AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
     // drawAABB(aabb, DrawMode::Wireframe);
-    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+    // drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
 
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
 }
