@@ -16,7 +16,10 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
 
         if (features.enableRecursive) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
-            // TODO: put your own implementation of recursive ray tracing here.
+            // Verifying if the ray intersects a specular surface and if the rayDepth is less than 5
+            if(hitInfo.material.ks != glm::vec3 {0.0, 0.0, 0.0} && rayDepth < 5)
+                // Adding the reflected light with consideration to the specularity
+                Lo += hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth + 1);
         }
 
         // Draw a ray of the color of the surface if it hits the surface and the shading is enabled.
