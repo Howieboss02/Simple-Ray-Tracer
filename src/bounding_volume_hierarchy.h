@@ -13,8 +13,9 @@ struct Scene;
  * nodeIndex - index of node inside BVH node vector
  */
 struct TriangleOrNode {
-    size_t meshOrNodeIndex;
+    size_t meshIndex;
     size_t triangleIndex;
+    size_t nodeIndex;
 };
 
 /**
