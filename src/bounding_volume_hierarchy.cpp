@@ -78,7 +78,7 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
     auto beginIt = triangles.begin() + left;
     auto endIt = triangles.begin() + right;
     
-    if (triangles.size() == 1 || level > 8 ) {
+    if (right - left <= 1 || level > 8 ) {
         this->nodes.push_back({true, level, triangles, getBox(beginIt, endIt, *this->m_pScene)});
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
@@ -150,7 +150,7 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
     size_t count = 0;
-    for (auto& node : this->nodes) {
+    for (const auto& node : this->nodes) {
         
         if (node.isLeaf == 1) {
             count++;
