@@ -1,5 +1,5 @@
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ./FinalProject
 cd ..

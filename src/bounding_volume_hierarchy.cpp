@@ -36,16 +36,16 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         // std::cout << this->m_numLeaves << " " << node.level << ";";
     }
     setMaxLevels(maxLevel);
-    std::cout << maxLevel << " " << numLevels() << std::endl;
+    // std::cout << maxLevel << " " << numLevels() << std::endl;
 }
 
-glm::vec3 getMedian(TriangleOrNode& triangle, Scene& scene)
+glm::vec3 getMedian(const TriangleOrNode& triangle, const Scene& scene)
 {
-    auto mesh = scene.meshes[triangle.meshOrNodeIndex];
-    auto tr = mesh.triangles[triangle.triangleIndex]; // uvec3, indices of points of a single triangle
-    auto p1 = mesh.vertices[tr.x].position;
-    auto p2 = mesh.vertices[tr.y].position;
-    auto p3 = mesh.vertices[tr.z].position;
+    const auto& mesh = scene.meshes[triangle.meshOrNodeIndex];
+    const auto& tr = mesh.triangles[triangle.triangleIndex]; // uvec3, indices of points of a single triangle
+    const auto& p1 = mesh.vertices[tr.x].position;
+    const auto& p2 = mesh.vertices[tr.y].position;
+    const auto& p3 = mesh.vertices[tr.z].position;
     return (p1 + p2 + p3) / 3.0f;
 }
 
@@ -58,9 +58,9 @@ AxisAlignedBox getBox(
     glm::vec3 upper = { std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
     for (auto it = begin; it != end; it += 1) {
         auto triangle = *it;
-        auto mesh = scene.meshes[triangle.meshOrNodeIndex];
-        auto tr = mesh.triangles[triangle.triangleIndex];
-        auto v1 = mesh.vertices[tr.x].position, v2 = mesh.vertices[tr.y].position, v3 = mesh.vertices[tr.z].position;
+        const auto& mesh = scene.meshes[triangle.meshOrNodeIndex];
+        const auto& tr = mesh.triangles[triangle.triangleIndex];
+        const auto& v1 = mesh.vertices[tr.x].position, v2 = mesh.vertices[tr.y].position, v3 = mesh.vertices[tr.z].position;
         upper.x = std::max(std::max(upper.x, v1.x), std::max(v2.x, v3.x));
         upper.y = std::max(std::max(upper.y, v1.y), std::max(v2.y, v3.y));
         upper.z = std::max(std::max(upper.z, v1.z), std::max(v2.z, v3.z));
@@ -84,7 +84,7 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
         return this->nodes.size() - 1;
     }
 
-    std::sort(triangles.begin() + left, triangles.begin() + right, [this, whichAxis](TriangleOrNode& triangle1, TriangleOrNode& triangle2) {
+    std::sort(triangles.begin() + left, triangles.begin() + right, [this, whichAxis](const TriangleOrNode& triangle1, const TriangleOrNode& triangle2) {
         auto median1 = getMedian(triangle1, *this->m_pScene);
         auto median2 = getMedian(triangle2, *this->m_pScene);
         return median1[whichAxis] < median2[whichAxis];
