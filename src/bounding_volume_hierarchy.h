@@ -59,7 +59,7 @@ public:
     void setMaxLevels(int level);
 private:
     int m_numLevels = 0;
-    int m_numLeaves;
+    int m_numLeaves = 0;
     Scene* m_pScene;
 
     std::vector<Node> nodes;

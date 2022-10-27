@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 
 void BoundingVolumeHierarchy::setMaxLevels(int level){
-    this->m_numLeaves = level;
+    this->m_numLevels = level;
 }
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
@@ -19,24 +19,18 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     this->m_pScene = pScene;
     auto triangles = std::vector<TriangleOrNode>();
     for (size_t i = 0; i < pScene->meshes.size(); ++i) {
-        auto mesh = pScene->meshes[i];
+        const auto& mesh = pScene->meshes[i];
         for (size_t j = 0; j < mesh.triangles.size(); ++j) {
             triangles.push_back(TriangleOrNode { i, j });
         }
     }
-    
-    int maxLevel = 0;
-    constructorHelper(triangles,0, triangles.size(), 0, 0);
-    setMaxLevels(0);
-    // std::cout << this->m_numLeaves << std::endl;
-    for (auto node : this->nodes) {
-        maxLevel = std::max(maxLevel, node.level);
 
-        // this->m_numLeaves = std::max(this->m_numLeaves, node.level);
-        // std::cout << this->m_numLeaves << " " << node.level << ";";
+    constructorHelper(triangles, 0, triangles.size(), 0, 0);
+
+    this->m_numLevels = 0;
+    for (const auto& node : this->nodes) {
+        this->m_numLevels = std::max(this->m_numLevels, node.level);
     }
-    setMaxLevels(maxLevel);
-    // std::cout << maxLevel << " " << numLevels() << std::endl;
 }
 
 glm::vec3 getMedian(const TriangleOrNode& triangle, const Scene& scene)
@@ -75,29 +69,26 @@ AxisAlignedBox getBox(
 // which axis can work as a depth indicator
 size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& triangles, size_t left, size_t right, int whichAxis, int level)
 {
-    auto beginIt = triangles.begin() + left;
-    auto endIt = triangles.begin() + right;
+    const auto beginIt = triangles.begin() + left;
+    const auto endIt = triangles.begin() + right;
     
-    if (right - left <= 1 || level > 8 ) {
+    if (right - left <= 1 || level > 11 ) {
         this->nodes.push_back({true, level, triangles, getBox(beginIt, endIt, *this->m_pScene)});
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
     }
 
     std::sort(triangles.begin() + left, triangles.begin() + right, [this, whichAxis](const TriangleOrNode& triangle1, const TriangleOrNode& triangle2) {
-        auto median1 = getMedian(triangle1, *this->m_pScene);
-        auto median2 = getMedian(triangle2, *this->m_pScene);
+        const auto median1 = getMedian(triangle1, *this->m_pScene);
+        const auto median2 = getMedian(triangle2, *this->m_pScene);
         return median1[whichAxis] < median2[whichAxis];
     });
 
     size_t median = (left + right) / 2;
-    auto leftIndex = this->constructorHelper(triangles, left, median, (whichAxis + 1) % 3, level + 1);
-    auto rightIndex = this->constructorHelper(triangles, median, right, (whichAxis + 1) % 3, level + 1);
+    const auto leftIndex = this->constructorHelper(triangles, left, median, (whichAxis + 1) % 3, level + 1);
+    const auto rightIndex = this->constructorHelper(triangles, median, right, (whichAxis + 1) % 3, level + 1);
 
-    // auto level = std::max(this->nodes[leftIndex].level, this->nodes[rightIndex].level) + 1;
-    // auto level = whichAxis;
-    // std::cout << level << "\n";
-    auto children = std::vector<TriangleOrNode> { { leftIndex, 0 }, { rightIndex, 0 } };
+    const auto children = std::vector<TriangleOrNode> { { leftIndex, 0 }, { rightIndex, 0 } };
     this->nodes.push_back({ false, level, children, getBox(beginIt, endIt, *this->m_pScene) });
     return this->nodes.size() - 1;
 }
@@ -106,9 +97,7 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
 // slider in the UI how many steps it should display for Visual Debug 1.
 int BoundingVolumeHierarchy::numLevels() const
 {
-    int maxLevel = 0;
-    for (auto node : this->nodes) maxLevel = std::max(maxLevel, node.level);
-    return maxLevel;
+    return this->m_numLevels;
 }
 
 // Return the number of leaf nodes in the tree that you constructed. This is used to tell the
@@ -127,11 +116,9 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
     // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
-    auto color = glm::vec3(1.0f, 1.0f, 1.0f);
-    for (auto& node : this->nodes) {
-        // std::cout << node.level << "\n";
+    const auto color = glm::vec3(1.0f, 1.0f, 1.0f);
+    for (const auto& node : this->nodes) {
         if (node.level == level) {
-            // std::cout << node.level << " ";
             // Draw the AABB as a (white) wireframe box.
             // drawAABB(aabb, DrawMode::Wireframe);
             drawAABB(node.box, DrawMode::Wireframe, color, 1.0f);
@@ -149,15 +136,13 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // Draw the AABB as a transparent green box.
     // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
-    size_t count = 0;
+    size_t count = 1;
     for (const auto& node : this->nodes) {
-        
-        if (node.isLeaf == 1) {
-            count++;
-            if(leafIdx + 1 == count){
-                drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 1.05f, 1.05f), 1.0f);
-            }
+        if (node.isLeaf == false) continue;
+        if (leafIdx == count) {
+            drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 1.05f, 1.05f), 1.0f);
         }
+        count++;
     }
     // Draw the AABB as a (white) wireframe box.
     // AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
@@ -179,9 +164,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // Intersect with all triangles of all meshes.
         for (const auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
-                const auto v0 = mesh.vertices[tri[0]];
-                const auto v1 = mesh.vertices[tri[1]];
-                const auto v2 = mesh.vertices[tri[2]];
+                const auto& v0 = mesh.vertices[tri[0]];
+                const auto& v1 = mesh.vertices[tri[1]];
+                const auto& v2 = mesh.vertices[tri[2]];
                 if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                     hitInfo.material = mesh.material;
                     hit = true;
