@@ -5,13 +5,9 @@
 #include "scene.h"
 #include "texture.h"
 #include <algorithm>
-#include <iostream>
-#include <glm/glm.hpp>
 #include <deque>
-
-void BoundingVolumeHierarchy::setMaxLevels(int level){
-    this->m_numLevels = level;
-}
+#include <glm/glm.hpp>
+#include <iostream>
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
@@ -45,9 +41,9 @@ glm::vec3 getMedian(const TriangleOrNode& triangle, const Scene& scene)
 }
 
 AxisAlignedBox getBox(
-        const std::vector<TriangleOrNode>::iterator begin,
-        const std::vector<TriangleOrNode>::iterator end,
-        const Scene& scene)
+    const std::vector<TriangleOrNode>::iterator begin,
+    const std::vector<TriangleOrNode>::iterator end,
+    const Scene& scene)
 {
     glm::vec3 lower = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
     glm::vec3 upper = { std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
@@ -55,7 +51,7 @@ AxisAlignedBox getBox(
         auto triangle = *it;
         const auto& mesh = scene.meshes[triangle.meshIndex];
         const auto& tr = mesh.triangles[triangle.triangleIndex];
-        const auto& v1 = mesh.vertices[tr.x].position, v2 = mesh.vertices[tr.y].position, v3 = mesh.vertices[tr.z].position;
+        const auto &v1 = mesh.vertices[tr.x].position, v2 = mesh.vertices[tr.y].position, v3 = mesh.vertices[tr.z].position;
         upper.x = std::max(std::max(upper.x, v1.x), std::max(v2.x, v3.x));
         upper.y = std::max(std::max(upper.y, v1.y), std::max(v2.y, v3.y));
         upper.z = std::max(std::max(upper.z, v1.z), std::max(v2.z, v3.z));
@@ -63,7 +59,6 @@ AxisAlignedBox getBox(
         lower.x = std::min(std::min(lower.x, v1.x), std::min(v2.x, v3.x));
         lower.y = std::min(std::min(lower.y, v1.y), std::min(v2.y, v3.y));
         lower.z = std::min(std::min(lower.z, v1.z), std::min(v2.z, v3.z));
-
     }
     return { lower, upper };
 }
@@ -72,9 +67,9 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
 {
     const auto beginIt = triangles.begin() + left;
     const auto endIt = triangles.begin() + right;
-    
-    if (right - left <= 1 || level > 11 ) {
-        this->nodes.push_back({true, level, triangles, getBox(beginIt, endIt, *this->m_pScene)});
+
+    if (right - left <= 1 || level > 11) {
+        this->nodes.push_back({ true, level, triangles, getBox(beginIt, endIt, *this->m_pScene) });
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
     }
@@ -139,7 +134,8 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
     size_t count = 1;
     for (const auto& node : this->nodes) {
-        if (node.isLeaf == false) continue;
+        if (node.isLeaf == false)
+            continue;
         if (leafIdx == count) {
             drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 1.05f, 1.05f), 1.0f);
         }
@@ -153,7 +149,8 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
 }
 
-bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, const Mesh& mesh) {
+bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, const Mesh& mesh)
+{
     const auto& v0 = mesh.vertices[triangle[0]];
     const auto& v1 = mesh.vertices[triangle[1]];
     const auto& v2 = mesh.vertices[triangle[2]];
@@ -164,37 +161,11 @@ bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, 
     return false;
 }
 
-float intersectRayWithFace(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, const Ray& ray)
+float getClosestIntersectionWithBox(const AxisAlignedBox& box, const Ray& ray)
 {
-    Ray newRay = {ray.origin, ray.direction, ray.t};
-    HitInfo hitInfo = {{}, {}, {}};
-    intersectRayWithTriangle(v0, v1, v2, newRay, hitInfo);
-    intersectRayWithTriangle(v2, v3, v0, newRay, hitInfo);
-    return newRay.t;
-}
-
-float getClosestIntersectionWithBox(const AxisAlignedBox& box, const Ray& ray) {
-    Ray newRay = {ray.origin, ray.direction, ray.t};
+    Ray newRay = { ray.origin, ray.direction, ray.t };
     intersectRayWithShape(box, newRay);
     return newRay.t;
-}
-
-float getFarestIntersectionWithBox(const AxisAlignedBox& box, const Ray& ray) {
-    const auto v0 = box.lower, v7 = box.upper;
-    const auto v1 = glm::vec3 { v0.x, v7.y, v0.z };
-    const auto v2 = glm::vec3 { v7.x, v7.y, v0.z };
-    const auto v3 = glm::vec3 { v7.x, v0.y, v0.z };
-    const auto v4 = glm::vec3 { v0.x, v7.y, v7.z };
-    const auto v5 = glm::vec3 { v7.x, v7.y, v7.z };
-    const auto v6 = glm::vec3 { v7.x, v0.y, v7.z };
-
-    return std::max(std::max(std::max(std::max(std::max(
-                            intersectRayWithFace(v0, v1, v2, v3, ray), 
-                            intersectRayWithFace(v4, v5, v6, v7, ray)),
-                    intersectRayWithFace(v0, v1, v5, v4, ray)), 
-                intersectRayWithFace(v1, v2, v6, v5, ray)),
-            intersectRayWithFace(v2, v3, v7, v6, ray)), 
-        intersectRayWithFace(v3, v0, v4, v7, ray));
 }
 
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
@@ -209,7 +180,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // Intersect with all triangles of all meshes.
         for (const auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
-                if (intersectWithLeafTriangle(ray, hitInfo, tri, mesh)) hit = true;
+                if (intersectWithLeafTriangle(ray, hitInfo, tri, mesh)) {
+                    hit = true;
+                }
             }
         }
         // Intersect with spheres.
@@ -220,7 +193,8 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
-        if (this->nodes.empty()) return false;
+        if (this->nodes.empty())
+            return false;
         float closestIntersection = std::numeric_limits<float>::max();
 
         std::deque<size_t> deque;
@@ -230,8 +204,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             const auto& next = this->nodes[deque.back()];
             deque.pop_back();
 
-            const auto closest = getClosestIntersectionWithBox(next.box, ray);
-            if (closest > closestIntersection) continue;
+            if (getClosestIntersectionWithBox(next.box, ray) > closestIntersection) {
+                continue;
+            }
 
             if (next.isLeaf) {
                 for (const auto& triangle : next.triangles) {
@@ -245,9 +220,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 for (const auto& nodeIndex : next.triangles) {
                     auto index = nodeIndex.nodeIndex;
                     const auto& child = this->nodes[index];
-                    const auto closest = getClosestIntersectionWithBox(child.box, ray);
-                    const auto farest = getFarestIntersectionWithBox(child.box, ray);
-                    if (closest <= closestIntersection) {
+                    if (getClosestIntersectionWithBox(child.box, ray) <= closestIntersection) {
                         deque.push_back(index);
                     }
                 }

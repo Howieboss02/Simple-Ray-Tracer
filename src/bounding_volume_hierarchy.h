@@ -57,7 +57,6 @@ public:
     // is on the correct side of the origin (the new t >= 0).
     bool intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const;
 
-    void setMaxLevels(int level);
 private:
     int m_numLevels = 0;
     int m_numLeaves = 0;
