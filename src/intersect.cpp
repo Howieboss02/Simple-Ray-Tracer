@@ -61,7 +61,7 @@ Plane trianglePlane(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v
 
 /// Input: the three vertices of the triangle
 /// Output: if intersects then modify the hit parameter ray.t and return true, otherwise return false
-bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, Ray& ray, HitInfo& hitInfo, const Features& features)
+bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, Ray& ray, HitInfo& hitInfo)
 {
     auto prev_t = ray.t;
     auto plane = trianglePlane(v0, v1, v2);
@@ -71,23 +71,24 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
     auto p = ray.origin + ray.direction * ray.t;
     auto pointToCamera = glm::normalize(p - ray.origin);
 
-    bool revert = false;
-    if(glm::dot(plane.normal, pointToCamera) <= 0) {
-        revert = true;
-    }
+//    bool revert = false;
+//    if(glm::dot(plane.normal, pointToCamera) <= 0) {
+//        revert = true;
+//    }
 
     if (pointInTriangle(v0, v1, v2, plane.normal, p) ) {
-        if(features.enableNormalInterp){
-
-            // hitInfo.normal = interpolated normal
-        } else {
-            
-            hitInfo.normal = revert ? -plane.normal : plane.normal;
-        }
-        
+//        if(features.enableNormalInterp){
+//
+//            // hitInfo.normal = interpolated normal
+//        } else {
+//
+//            hitInfo.normal = revert ? -plane.normal : plane.normal;
+//        }
+//
         return true;
     }
     ray.t = prev_t;
+    return false;
 }
 
 /// Input: a sphere with the following attributes: sphere.radius, sphere.center
@@ -187,3 +188,4 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     //     || intersectRayWithFace(v2, v3, v7, v6, ray) || intersectRayWithFace(v3, v0, v4, v7, ray);
     return false;
 }
+

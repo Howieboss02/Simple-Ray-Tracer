@@ -12,7 +12,6 @@
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
-    // TODO: implement BVH construction.
     this->m_pScene = pScene;
     auto triangles = std::vector<TriangleOrNode>();
     for (size_t i = 0; i < pScene->meshes.size(); ++i) {
@@ -190,7 +189,6 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             hit |= intersectRayWithShape(sphere, ray, hitInfo);
         return hit;
     } else {
-        // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
         if (this->nodes.empty())
