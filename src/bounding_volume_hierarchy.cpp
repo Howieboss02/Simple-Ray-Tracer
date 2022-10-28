@@ -131,14 +131,10 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // Draw the AABB as a transparent green box.
     // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
-    size_t count = 1;
-    for (const auto& node : this->nodes) {
-        if (node.isLeaf == false)
-            continue;
-        if (leafIdx == count) {
-            drawAABB(node.box, DrawMode::Wireframe, glm::vec3(0.0f, 1.05f, 1.05f), 1.0f);
+    for (size_t i = 0; i <= this->nodes.size(); ++i) {
+        if (this->nodes[i].isLeaf && leafIdx == i + 1) {
+            drawAABB(this->nodes[i].box, DrawMode::Wireframe, glm::vec3(0.0f, 1.05f, 1.05f), 1.0f);
         }
-        count++;
     }
     // Draw the AABB as a (white) wireframe box.
     // AxisAlignedBox aabb { glm::vec3(0.0f), glm::vec3(0.0f, 1.05f, 1.05f) };
