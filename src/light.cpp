@@ -6,7 +6,6 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
-#include <iostream>
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
@@ -48,7 +47,7 @@ float testVisibilityLightSample(
     Ray newRay = { intersectionPoint, samplePos - intersectionPoint };
     newRay.origin += glm::normalize(newRay.direction) * 0.001f;
     if (bvh.intersect(newRay, hitInfo, features) && newRay.t < 1 - 0.01) {
-        lightRayColor = {1, 0, 0};
+        lightRayColor = { 1, 0, 0 };
         ans = 0.0;
     }
     newRay.t = 1;
