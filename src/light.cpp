@@ -29,22 +29,31 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 // test the visibility at a given light sample
 // returns 1.0 if sample is visible, 0.0 otherwise
 float testVisibilityLightSample(
-        const glm::vec3& samplePos,
-        const glm::vec3& debugColor,
-        const BvhInterface& bvh,
-        const Features& features,
-        Ray ray,
-        HitInfo hitInfo
-) {
-    std::cout << "hi\n";
-    if (!features.enableHardShadow) return 1;
-    const auto intersectionPoint = ray.origin + ray.direction * ray.t;
-    if (intersectionPoint == samplePos) return 1;
-    Ray newRay = {intersectionPoint, glm::normalize(samplePos - intersectionPoint)};
-    if (bvh.intersect(newRay, hitInfo, features)) {
-      return 0.0;
+    const glm::vec3& samplePos,
+    const glm::vec3& debugColor,
+    const BvhInterface& bvh,
+    const Features& features,
+    Ray ray,
+    HitInfo hitInfo)
+{
+    if (!features.enableHardShadow) {
+        return 1;
     }
-    return 1.0;
+    const auto intersectionPoint = ray.origin + ray.direction * ray.t;
+    if (intersectionPoint == samplePos) {
+        return 1;
+    }
+    auto lightRayColor = debugColor;
+    float ans = 1;
+    Ray newRay = { intersectionPoint, samplePos - intersectionPoint };
+    newRay.origin += glm::normalize(newRay.direction) * 0.001f;
+    if (bvh.intersect(newRay, hitInfo, features) && newRay.t < 1 - 0.01) {
+        lightRayColor = {1, 0, 0};
+        ans = 0.0;
+    }
+    newRay.t = 1;
+    drawRay(newRay, lightRayColor);
+    return ans;
 }
 
 // given an intersection, computes the contribution from all light sources at the intersection point
@@ -84,23 +93,24 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
 {
     if (features.enableShading) {
         // If shading is enabled, compute the contribution from all lights.
-        //Creating a nul vector which will be the result of all computation of all light sources
-        glm::vec3 res = {0.0, 0.0, 0.0};
-        //Iterating through all the light sources
-         for (const auto& light : scene.lights) {
-             if (std::holds_alternative<PointLight>(light)) {
-                 //If the light is a PointLight, add the result of the computeShading method to the res vector
-                 const PointLight pointLight = std::get<PointLight>(light);
-                 res += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
-             } else if (std::holds_alternative<SegmentLight>(light)) {
-                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
-                 // Perform your calculations for a segment light.
-             } else if (std::holds_alternative<ParallelogramLight>(light)) {
-                 const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
-                 // Perform your calculations for a parallelogram light.
-             }
-         }
-             return  res;
+        // Creating a nul vector which will be the result of all computation of all light sources
+        glm::vec3 res = { 0.0, 0.0, 0.0 };
+        // Iterating through all the light sources
+        for (const auto& light : scene.lights) {
+            if (std::holds_alternative<PointLight>(light)) {
+                // If the light is a PointLight, add the result of the computeShading method to the res vector
+                const PointLight pointLight = std::get<PointLight>(light);
+                res += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo)
+                    * testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+            } else if (std::holds_alternative<SegmentLight>(light)) {
+                const SegmentLight segmentLight = std::get<SegmentLight>(light);
+                // Perform your calculations for a segment light.
+            } else if (std::holds_alternative<ParallelogramLight>(light)) {
+                const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+                // Perform your calculations for a parallelogram light.
+            }
+        }
+        return res;
     } else {
         // If shading is disabled, return the albedo of the material.
         return hitInfo.material.kd;
