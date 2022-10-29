@@ -79,7 +79,7 @@ int main(int argc, char** argv)
                 case GLFW_KEY_R: {
                     // Shoot a ray. Produce a ray from camera to the far plane.
                     const auto tmp = window.getNormalizedCursorPos();
-                        optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
+                    optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
                 } break;
                 case GLFW_KEY_A: {
                     debugBVHLeafId++;

@@ -144,13 +144,17 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
 }
 
-bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, const Mesh& mesh)
+bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, const Mesh& mesh, const Features& features)
 {
     const auto& v0 = mesh.vertices[triangle[0]];
     const auto& v1 = mesh.vertices[triangle[1]];
     const auto& v2 = mesh.vertices[triangle[2]];
     if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
         hitInfo.material = mesh.material;
+        if (features.enableNormalInterp) {
+            hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, ray.origin + ray.direction * ray.t);
+            hitInfo.normal = glm::normalize(interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord));
+        }
         return true;
     }
     return false;
@@ -175,7 +179,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // Intersect with all triangles of all meshes.
         for (const auto& mesh : m_pScene->meshes) {
             for (const auto& tri : mesh.triangles) {
-                if (intersectWithLeafTriangle(ray, hitInfo, tri, mesh)) {
+                if (intersectWithLeafTriangle(ray, hitInfo, tri, mesh, features)) {
                     hit = true;
                 }
             }
@@ -206,7 +210,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 for (const auto& triangle : next.triangles) {
                     const auto& mesh = this->m_pScene->meshes[triangle.meshIndex];
                     const auto& tr = mesh.triangles[triangle.triangleIndex];
-                    if (intersectWithLeafTriangle(ray, hitInfo, tr, mesh)) {
+                    if (intersectWithLeafTriangle(ray, hitInfo, tr, mesh, features)) {
                         closestIntersection = std::min(closestIntersection, ray.t);
                     }
                 }
