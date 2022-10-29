@@ -26,10 +26,10 @@ struct TriangleOrNode {
  *     If node is NOT leaf it uses only the nodeIndex to store indices of the child nodes.
  */
 struct Node {
-    bool isLeaf = false;
-    int level = 0;
-    std::vector<TriangleOrNode> triangles;
-    AxisAlignedBox box;
+    const bool isLeaf = false;
+    const int level = 0;
+    const std::vector<TriangleOrNode> triangles;
+    const AxisAlignedBox box;
 };
 
 class BoundingVolumeHierarchy {

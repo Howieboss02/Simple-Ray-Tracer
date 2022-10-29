@@ -43,16 +43,28 @@ void drawExampleOfCustomVisualDebug()
     glVertex3f(0.0f, 1.0f, 0.0f);
     glEnd();
 }
-
-
-void drawTriangle (const Vertex& v0, const Vertex& v1, const Vertex& v2 ) {
+void drawTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2, const glm::vec3& color)
+{
+    glColor3f(color[0], color[1], color[2]);
     glBegin(GL_TRIANGLES);
-        glNormal3fv(glm::value_ptr(v0.normal));
-        glVertex3fv(glm::value_ptr(v0.position));
-        glNormal3fv(glm::value_ptr(v1.normal));
-        glVertex3fv(glm::value_ptr(v1.position));
-        glNormal3fv(glm::value_ptr(v2.normal));
-        glVertex3fv(glm::value_ptr(v2.position));
+    glNormal3fv(glm::value_ptr(v0.normal));
+    glVertex3fv(glm::value_ptr(v0.position));
+    glNormal3fv(glm::value_ptr(v1.normal));
+    glVertex3fv(glm::value_ptr(v1.position));
+    glNormal3fv(glm::value_ptr(v2.normal));
+    glVertex3fv(glm::value_ptr(v2.position));
+    glEnd();
+}
+
+void drawTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2)
+{
+    glBegin(GL_TRIANGLES);
+    glNormal3fv(glm::value_ptr(v0.normal));
+    glVertex3fv(glm::value_ptr(v0.position));
+    glNormal3fv(glm::value_ptr(v1.normal));
+    glVertex3fv(glm::value_ptr(v1.position));
+    glNormal3fv(glm::value_ptr(v2.normal));
+    glVertex3fv(glm::value_ptr(v2.position));
     glEnd();
 }
 
@@ -113,40 +125,40 @@ static void drawAABBInternal(const AxisAlignedBox& box)
 
     glBegin(GL_QUADS);
     glNormal3f(0, 0, -1);
-    glVertex3f(box.lower.x, box.upper.y, box.lower.z); //3
-    glVertex3f(box.upper.x, box.upper.y, box.lower.z); //2
-    glVertex3f(box.upper.x, box.lower.y, box.lower.z); //1
-    glVertex3f(box.lower.x, box.lower.y, box.lower.z); //0
+    glVertex3f(box.lower.x, box.upper.y, box.lower.z); // 3
+    glVertex3f(box.upper.x, box.upper.y, box.lower.z); // 2
+    glVertex3f(box.upper.x, box.lower.y, box.lower.z); // 1
+    glVertex3f(box.lower.x, box.lower.y, box.lower.z); // 0
 
     glNormal3f(0, 0, 1);
-    glVertex3f(box.upper.x, box.lower.y, box.upper.z); //5
-    glVertex3f(box.upper.x, box.upper.y, box.upper.z); //6
-    glVertex3f(box.lower.x, box.upper.y, box.upper.z); //7
-    glVertex3f(box.lower.x, box.lower.y, box.upper.z); //4
+    glVertex3f(box.upper.x, box.lower.y, box.upper.z); // 5
+    glVertex3f(box.upper.x, box.upper.y, box.upper.z); // 6
+    glVertex3f(box.lower.x, box.upper.y, box.upper.z); // 7
+    glVertex3f(box.lower.x, box.lower.y, box.upper.z); // 4
 
     glNormal3f(1, 0, 0);
-    glVertex3f(box.upper.x, box.upper.y, box.lower.z); //2
-    glVertex3f(box.upper.x, box.upper.y, box.upper.z); //6
-    glVertex3f(box.upper.x, box.lower.y, box.upper.z); //5
-    glVertex3f(box.upper.x, box.lower.y, box.lower.z); //1
+    glVertex3f(box.upper.x, box.upper.y, box.lower.z); // 2
+    glVertex3f(box.upper.x, box.upper.y, box.upper.z); // 6
+    glVertex3f(box.upper.x, box.lower.y, box.upper.z); // 5
+    glVertex3f(box.upper.x, box.lower.y, box.lower.z); // 1
 
     glNormal3f(-1, 0, 0);
-    glVertex3f(box.lower.x, box.lower.y, box.upper.z); //4
-    glVertex3f(box.lower.x, box.upper.y, box.upper.z); //7
-    glVertex3f(box.lower.x, box.upper.y, box.lower.z); //3
-    glVertex3f(box.lower.x, box.lower.y, box.lower.z); //0
+    glVertex3f(box.lower.x, box.lower.y, box.upper.z); // 4
+    glVertex3f(box.lower.x, box.upper.y, box.upper.z); // 7
+    glVertex3f(box.lower.x, box.upper.y, box.lower.z); // 3
+    glVertex3f(box.lower.x, box.lower.y, box.lower.z); // 0
 
     glNormal3f(0, 1, 0);
-    glVertex3f(box.lower.x, box.upper.y, box.upper.z); //7
-    glVertex3f(box.upper.x, box.upper.y, box.upper.z); //6
-    glVertex3f(box.upper.x, box.upper.y, box.lower.z); //2
-    glVertex3f(box.lower.x, box.upper.y, box.lower.z); //3
+    glVertex3f(box.lower.x, box.upper.y, box.upper.z); // 7
+    glVertex3f(box.upper.x, box.upper.y, box.upper.z); // 6
+    glVertex3f(box.upper.x, box.upper.y, box.lower.z); // 2
+    glVertex3f(box.lower.x, box.upper.y, box.lower.z); // 3
 
     glNormal3f(0, -1, 0);
-    glVertex3f(box.upper.x, box.lower.y, box.lower.z); //1
-    glVertex3f(box.upper.x, box.lower.y, box.upper.z); //5
-    glVertex3f(box.lower.x, box.lower.y, box.upper.z); //4
-    glVertex3f(box.lower.x, box.lower.y, box.lower.z); //0
+    glVertex3f(box.upper.x, box.lower.y, box.lower.z); // 1
+    glVertex3f(box.upper.x, box.lower.y, box.upper.z); // 5
+    glVertex3f(box.lower.x, box.lower.y, box.upper.z); // 4
+    glVertex3f(box.lower.x, box.lower.y, box.lower.z); // 0
     glEnd();
 
     glPopMatrix();

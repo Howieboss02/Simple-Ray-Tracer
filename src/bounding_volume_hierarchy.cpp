@@ -119,7 +119,6 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
             drawAABB(node.box, DrawMode::Wireframe, color, 1.0f);
         }
     }
-    // std::cout << std::endl << numLevels() << std::endl;
 }
 
 // Use this function to visualize your leaf nodes. This is useful for debugging. The function
@@ -144,6 +143,16 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
 }
 
+bool shoudlBeReverted(Ray& ray, HitInfo& hitInfo)
+{
+    auto p = ray.origin + ray.direction * ray.t;
+    auto pointToCamera = glm::normalize(ray.origin - p);
+    if (glm::dot(hitInfo.normal, pointToCamera) <= 0) {
+        return true;
+    }
+    return false;
+}
+
 bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, const Mesh& mesh, const Features& features)
 {
     const auto& v0 = mesh.vertices[triangle[0]];
@@ -152,10 +161,13 @@ bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, 
     if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
         hitInfo.material = mesh.material;
         hitInfo.normal = glm::normalize(glm::cross(v1.position - v0.position, v2.position - v0.position));
+
         if (features.enableNormalInterp) {
             hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, ray.origin + ray.direction * ray.t);
             hitInfo.normal = glm::normalize(interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord));
         }
+        hitInfo.normal = shoudlBeReverted(ray, hitInfo) ? -hitInfo.normal : hitInfo.normal;
+
         return true;
     }
     return false;
@@ -166,6 +178,14 @@ float getClosestIntersectionWithBox(const AxisAlignedBox& box, const Ray& ray)
     Ray newRay = { ray.origin, ray.direction, ray.t };
     intersectRayWithShape(box, newRay);
     return newRay.t;
+}
+
+void drawLeafTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2, const glm::vec3& color)
+{
+    // const auto& v0 = mesh.vertices[triangle[0]];
+    // const auto& v1 = mesh.vertices[triangle[1]];
+    // const auto& v2 = mesh.vertices[triangle[2]];
+    drawTriangle(v0, v1, v2, color);
 }
 
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
@@ -197,8 +217,15 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         float closestIntersection = std::numeric_limits<float>::max();
 
         std::deque<size_t> deque;
-        deque.push_back(0);
+        auto lower = nodes[0].box.lower;
+        auto upper = nodes[0].box.upper;
 
+        if (getClosestIntersectionWithBox(this->nodes.back().box, ray) < closestIntersection) {
+            deque.push_back(nodes.size() - 1);
+        }
+
+        glm::uvec3 intersectionTriangle = {};
+        size_t meshInd = -1;
         while (!deque.empty()) {
             const auto& next = this->nodes[deque.back()];
             deque.pop_back();
@@ -206,6 +233,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             if (getClosestIntersectionWithBox(next.box, ray) > closestIntersection) {
                 continue;
             }
+            drawAABB(next.box, DrawMode::Wireframe, glm::vec3(1.0f, 1.00f, 1.0f), 1.0f);
 
             if (next.isLeaf) {
                 for (const auto& triangle : next.triangles) {
@@ -213,18 +241,29 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                     const auto& tr = mesh.triangles[triangle.triangleIndex];
                     if (intersectWithLeafTriangle(ray, hitInfo, tr, mesh, features)) {
                         closestIntersection = std::min(closestIntersection, ray.t);
+                        intersectionTriangle = tr;
+                        meshInd = triangle.meshIndex;
                     }
                 }
             } else {
                 for (const auto& nodeIndex : next.triangles) {
                     auto index = nodeIndex.nodeIndex;
                     const auto& child = this->nodes[index];
-                    if (getClosestIntersectionWithBox(child.box, ray) <= closestIntersection) {
+                    float closest = getClosestIntersectionWithBox(child.box, ray);
+
+                    if (closest < closestIntersection) {
                         deque.push_back(index);
+                    } else if (closest < std::numeric_limits<float>::max() && features.debugOptimisedNodes) {
+                        // draw unvisited inteersected node
+                        drawAABB(next.box, DrawMode::Wireframe, glm::vec3(1.0f, 0.00f, 0.0f), 0.1f);
                     }
                 }
             }
         }
-        return closestIntersection != std::numeric_limits<float>::max();
+        const auto intersectionHappened = closestIntersection != std::numeric_limits<float>::max();
+        const auto& mesh = this->m_pScene->meshes[meshInd].vertices;
+        if (intersectionHappened)
+            drawLeafTriangle(mesh[intersectionTriangle[0]], mesh[intersectionTriangle[1]], mesh[intersectionTriangle[2]], { 0.0f, 1.0f, 0.0f });
+        return intersectionHappened;
     }
 }
