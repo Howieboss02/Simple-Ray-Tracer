@@ -151,6 +151,7 @@ bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, 
     const auto& v2 = mesh.vertices[triangle[2]];
     if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
         hitInfo.material = mesh.material;
+        hitInfo.normal = glm::normalize(glm::cross(v1.position - v0.position, v2.position - v0.position));
         if (features.enableNormalInterp) {
             hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, ray.origin + ray.direction * ray.t);
             hitInfo.normal = glm::normalize(interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord));
