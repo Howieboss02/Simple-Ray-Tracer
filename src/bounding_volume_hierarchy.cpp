@@ -175,6 +175,12 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                         hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, ray.origin + ray.direction * ray.t);
                         hitInfo.normal = glm::normalize(interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord));
                     }
+                    if (features.enableTextureMapping){
+                        hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+                        if (hitInfo.material.kdTexture){
+                            hitInfo.material.kd = acquireTexel(hitInfo.material.kdTexture.operator*() , hitInfo.texCoord, features);
+                        }
+                    }
                 }
             }
         }
