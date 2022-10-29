@@ -26,6 +26,7 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
 
     //The direct illumination is the addition of the Lambertian shading model and the Phong-Specular shading model
     return lambertian + phongSpecular;
+
 }
 
 

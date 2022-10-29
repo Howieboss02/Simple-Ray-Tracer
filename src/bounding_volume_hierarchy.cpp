@@ -71,7 +71,7 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
 {
     const auto beginIt = triangles.begin() + left;
     const auto endIt = triangles.begin() + right;
-    
+
     if (right - left <= 1 || level > 11 ) {
         this->nodes.push_back({true, level, triangles, getBox(beginIt, endIt, *this->m_pScene)});
         this->m_numLeaves += 1;
@@ -171,6 +171,10 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                     hitInfo.material = mesh.material;
                     hit = true;
                     hitInfo.normal = glm::cross(v1.position - v0.position, v2.position - v0.position);
+                    if (features.enableNormalInterp) {
+                        hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, ray.origin + ray.direction * ray.t);
+                        hitInfo.normal = glm::normalize(interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord));
+                    }
                 }
             }
         }
