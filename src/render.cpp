@@ -17,15 +17,21 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         if (features.enableRecursive) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
             // Verifying if the ray intersects a specular surface and if the rayDepth is less than 5
-            if(hitInfo.material.ks != glm::vec3 {0.0, 0.0, 0.0} && rayDepth < 5)
+            if (hitInfo.material.ks != glm::vec3 { 0.0, 0.0, 0.0 } && rayDepth < 5)
                 // Adding the reflected light with consideration to the specularity
                 Lo += hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth + 1);
         }
 
-        // Draw a white debug ray if the ray hits.
-        drawRay(ray, glm::vec3(1.0f));
+        // Draw a ray of the color of the surface if it hits the surface and the shading is enabled.
+        if (features.enableShading) {
+            drawRay(ray, Lo);
+        }
+        // Draw a black ray if the shading is disabled.
+        else {
+            drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
+        }
 
-        // Set the color of the pixel to white if the ray hits.
+        // Set the color of the pixel to the color of the surface if the ray hits.
         return Lo;
     } else {
         // Draw a red debug ray if the ray missed.

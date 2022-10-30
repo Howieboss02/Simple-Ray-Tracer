@@ -143,6 +143,19 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                             auto position = glm::vec3(0.0);
                             auto color = glm::vec3(0.0);
                             sampleParallelogramLight(parallelogramLight, position, color, xrand / (float)N, yrand / (float)N);
+                            Ray rayToLight;
+                            rayToLight.origin = ray.origin + ray.direction * ray.t;
+                            rayToLight.direction = glm::normalize(position - rayToLight.origin);
+                            const auto& dist = glm::length(position - rayToLight.origin);
+                            HitInfo hitInfoTemp;
+                            bvh.intersect(rayToLight, hitInfoTemp, features);
+                            rayToLight.t = std::min(dist, rayToLight.t);
+                            if (std::abs(dist - rayToLight.t) < 0.000001f){
+                                drawRay(rayToLight, color);
+                            } else {
+                                drawRay(rayToLight, {1.0f, 0, 0});
+                            }
+
                             res += computeShading(position, color, features, ray, hitInfo) / (float)(N * N)
                                 * testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
                         }
