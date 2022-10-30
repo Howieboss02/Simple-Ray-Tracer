@@ -168,6 +168,13 @@ bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, 
         }
         hitInfo.normal = shoudlBeReverted(ray, hitInfo) ? -hitInfo.normal : hitInfo.normal;
 
+        if (features.enableTextureMapping) {
+            hitInfo.texCoord = interpolateTexCoord(v0.texCoord, v1.texCoord, v2.texCoord, hitInfo.barycentricCoord);
+            if (hitInfo.material.kdTexture) {
+                hitInfo.material.kd = acquireTexel(hitInfo.material.kdTexture.operator*(), hitInfo.texCoord, features);
+            }
+        }
+
         return true;
     }
     return false;
