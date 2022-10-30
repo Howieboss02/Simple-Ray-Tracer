@@ -68,7 +68,7 @@ float testVisibilityLightSample(
 //
 //
 // The code to iterate over the lights thus looks like this:
-// for (const auto& light : scene.lgihts) {
+// for (const auto& light : scene.lights) {
 //     if (std::holds_alternative<PointLight>(light)) {
 //         const PointLight pointLight = std::get<PointLight>(light);
 //         // Perform your calculations for a point light.

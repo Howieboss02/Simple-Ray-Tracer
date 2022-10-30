@@ -45,20 +45,8 @@ target_compile_features(FinalProjectLib PUBLIC cxx_std_20)
 enable_sanitizers(FinalProjectLib)
 set_project_warnings(FinalProjectLib)
 
-if (USE_PREBUILT_INTERSECT)
-	add_library(Intersect2 STATIC IMPORTED)
-	if (WIN32)
-		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/prebuilt/Intersect_x64_debug.lib")
-		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/prebuilt/Intersect_x64_release.lib")
-	elseif (APPLE)
-		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/prebuilt/libIntersect_mac_arm64.a")
-	else()
-		set_target_properties(Intersect2 PROPERTIES IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/prebuilt/libIntersect_linux_x64.a")
-	endif()
-	target_link_libraries(FinalProjectLib PUBLIC Intersect2)
-else()
-	target_sources(FinalProjectLib PRIVATE "src/intersect.cpp")
-endif()
+target_sources(FinalProjectLib PRIVATE "src/intersect.cpp")
+
 
 target_compile_definitions(FinalProjectLib PUBLIC
 	"-DDATA_DIR=\"${CMAKE_CURRENT_LIST_DIR}/data/\"")
