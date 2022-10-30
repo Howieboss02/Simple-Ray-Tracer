@@ -13,8 +13,9 @@ struct Scene;
  * nodeIndex - index of node inside BVH node vector
  */
 struct TriangleOrNode {
-    size_t meshOrNodeIndex;
+    size_t meshIndex;
     size_t triangleIndex;
+    size_t nodeIndex;
 };
 
 /**
@@ -25,10 +26,10 @@ struct TriangleOrNode {
  *     If node is NOT leaf it uses only the nodeIndex to store indices of the child nodes.
  */
 struct Node {
-    bool isLeaf = false;
-    int level = 0;
-    std::vector<TriangleOrNode> triangles;
-    AxisAlignedBox box;
+    const bool isLeaf = false;
+    const int level = 0;
+    const std::vector<TriangleOrNode> triangles;
+    const AxisAlignedBox box;
 };
 
 class BoundingVolumeHierarchy {
@@ -56,7 +57,6 @@ public:
     // is on the correct side of the origin (the new t >= 0).
     bool intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const;
 
-    void setMaxLevels(int level);
 private:
     int m_numLevels = 0;
     int m_numLeaves = 0;

@@ -72,6 +72,7 @@ struct Features {
     bool enableNormalInterp = false;
     bool enableTextureMapping = false;
     bool enableAccelStructure = false;
+    bool debugOptimisedNodes = false;
 
     ExtraFeatures extra = {};
 };
