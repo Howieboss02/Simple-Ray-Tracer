@@ -36,6 +36,7 @@ Scene loadScenePrebuilt(SceneType type, const std::filesystem::path& dataDir)
         auto subMeshes = loadMesh(dataDir / "CornellBox-Mirror-Rotated.obj", true);
         std::move(std::begin(subMeshes), std::end(subMeshes), std::back_inserter(scene.meshes));
         scene.lights.emplace_back(PointLight { glm::vec3(0, 0.58f, 0), glm::vec3(1) }); // Light at the top of the box
+        // scene.lights.emplace_back(SegmentLight { glm::vec3(0, 0.58f, 0), glm::vec3(1) }); // Light at the top of the box
     } break;
     case CornellBoxParallelogramLight: {
         // Load a 3D model of a Cornell Box

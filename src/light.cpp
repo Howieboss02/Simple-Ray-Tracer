@@ -6,23 +6,36 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
+#include <cstdlib>
+#include <time.h>
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
-void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
+void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color, const float t)
 {
-    position = glm::vec3(0.0);
-    color = glm::vec3(0.0);
-    // TODO: implement this function.
+    const auto& x = segmentLight.endpoint0.x * t + segmentLight.endpoint1.x * (1 - t);
+    const auto& y = segmentLight.endpoint0.y * t + segmentLight.endpoint1.y * (1 - t);
+    const auto& z = segmentLight.endpoint0.z * t + segmentLight.endpoint1.z * (1 - t);
+
+    const auto& r = segmentLight.color0.x * t + segmentLight.color1.x * (1 - t);
+    const auto& g = segmentLight.color0.y * t + segmentLight.color1.y * (1 - t);
+    const auto& b = segmentLight.color0.z * t + segmentLight.color1.z * (1 - t);
+
+    position = glm::vec3 { x, y, z };
+    color = glm::vec3(r, g, b);
 }
 
 // samples a parallelogram light source
 // you should fill in the vectors position and color with the sampled position and color
-void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm::vec3& position, glm::vec3& color)
+// x and y are uniform random numbers to multiply the edge01 and edge02
+void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm::vec3& position, glm::vec3& color, const float x, const float y)
 {
     position = glm::vec3(0.0);
     color = glm::vec3(0.0);
     // TODO: implement this function.
+    const auto& p = parallelogramLight;
+    position = p.v0 + x * p.edge01 + y * p.edge02;
+    color = p.color0 * x * y + p.color1 * (1 - x) * y + p.color2 * (1 - y) * x + p.color3 * (1 - x) * (1 - y);
 }
 
 // test the visibility at a given light sample
@@ -35,15 +48,19 @@ float testVisibilityLightSample(
     Ray ray,
     HitInfo hitInfo)
 {
-    if (!features.enableHardShadow) {
+    if (!features.enableHardShadow && !features.enableSoftShadow) {
         return 1;
     }
+
     const auto intersectionPoint = ray.origin + ray.direction * ray.t;
     if (intersectionPoint == samplePos) {
         return 1;
     }
     auto lightRayColor = debugColor;
     float ans = 1;
+    // if(features.enableSoftShadow){
+    //     ans *=
+    // }
     Ray newRay = { intersectionPoint, samplePos - intersectionPoint };
     newRay.origin += glm::normalize(newRay.direction) * 0.001f;
     if (bvh.intersect(newRay, hitInfo, features) && newRay.t < 1 - 0.01) {
@@ -94,6 +111,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
         // If shading is enabled, compute the contribution from all lights.
         // Creating a nul vector which will be the result of all computation of all light sources
         glm::vec3 res = { 0.0, 0.0, 0.0 };
+        srand(time(0));
         // Iterating through all the light sources
         for (const auto& light : scene.lights) {
             if (std::holds_alternative<PointLight>(light)) {
@@ -103,10 +121,33 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     * testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
             } else if (std::holds_alternative<SegmentLight>(light)) {
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
-                // Perform your calculations for a segment light.
+                if (features.enableSoftShadow) {
+                    const size_t N = 42;
+                    for (size_t t = 0; t < N; t++) {
+                        auto trand = (float)t + rand() % 1;
+                        auto position = glm::vec3(0.0);
+                        auto color = glm::vec3(0.0);
+                        sampleSegmentLight(segmentLight, position, color, trand / (float)N);
+                        res += computeShading(position, color, features, ray, hitInfo) / (float)N
+                            * testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+                    }
+                }
             } else if (std::holds_alternative<ParallelogramLight>(light)) {
                 const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
-                // Perform your calculations for a parallelogram light.
+                if (features.enableSoftShadow) {
+                    const size_t N = 10;
+                    for (size_t i = 0; i < N; i++) {
+                        for (size_t j = 0; j < N; j++) {
+                            auto xrand = (float)i + rand() % 1;
+                            auto yrand = (float)j + rand() % 1;
+                            auto position = glm::vec3(0.0);
+                            auto color = glm::vec3(0.0);
+                            sampleParallelogramLight(parallelogramLight, position, color, xrand / (float)N, yrand / (float)N);
+                            res += computeShading(position, color, features, ray, hitInfo) / (float)(N * N)
+                                * testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+                        }
+                    }
+                }
             }
         }
         return res;
