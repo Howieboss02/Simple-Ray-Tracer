@@ -35,7 +35,7 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
     // TODO: implement this function.
     const auto& p = parallelogramLight;
     position = p.v0 + x * p.edge01 + y * p.edge02;
-    color = p.color0 * x * y + p.color1 * (1 - x) * y + p.color2 * (1 - y) * x + p.color3 * (1 - x) * (1 - y);
+    color = p.color0 * (1 - x) * (1 - y) + p.color1 * x * (1 - y) + p.color2 * y * (1 - x) + p.color3 * x * y;
 }
 
 // test the visibility at a given light sample
@@ -48,27 +48,27 @@ float testVisibilityLightSample(
     Ray ray,
     HitInfo hitInfo)
 {
-    if (!features.enableHardShadow && !features.enableSoftShadow) {
-        return 1;
-    }
-
     const auto intersectionPoint = ray.origin + ray.direction * ray.t;
     if (intersectionPoint == samplePos) {
         return 1;
     }
     auto lightRayColor = debugColor;
     float ans = 1;
-    // if(features.enableSoftShadow){
-    //     ans *=
-    // }
     Ray newRay = { intersectionPoint, samplePos - intersectionPoint };
     newRay.origin += glm::normalize(newRay.direction) * 0.001f;
     if (bvh.intersect(newRay, hitInfo, features) && newRay.t < 1 - 0.01) {
         lightRayColor = { 1, 0, 0 };
         ans = 0.0;
+    }else{
+        newRay.t = 1;
     }
-    newRay.t = 1;
-    drawRay(newRay, lightRayColor);
+    if (features.enableSoftShadow){
+        drawRay(newRay, lightRayColor);
+    }
+    if(features.enableHardShadow){
+        newRay.t = 1;
+        drawRay(newRay, lightRayColor);
+    }
     return ans;
 }
 
@@ -124,7 +124,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 if (features.enableSoftShadow) {
                     const size_t N = 42;
                     for (size_t t = 0; t < N; t++) {
-                        auto trand = (float)t + rand() % 1;
+                        float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                        auto trand = (float)t + r;
                         auto position = glm::vec3(0.0);
                         auto color = glm::vec3(0.0);
                         sampleSegmentLight(segmentLight, position, color, trand / (float)N);
@@ -138,24 +139,13 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     const size_t N = 10;
                     for (size_t i = 0; i < N; i++) {
                         for (size_t j = 0; j < N; j++) {
-                            auto xrand = (float)i + rand() % 1;
-                            auto yrand = (float)j + rand() % 1;
+                            float r1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                            float r2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                            auto xrand = (float)i + r1;
+                            auto yrand = (float)j + r2;
                             auto position = glm::vec3(0.0);
                             auto color = glm::vec3(0.0);
                             sampleParallelogramLight(parallelogramLight, position, color, xrand / (float)N, yrand / (float)N);
-                            Ray rayToLight;
-                            rayToLight.origin = ray.origin + ray.direction * ray.t;
-                            rayToLight.direction = glm::normalize(position - rayToLight.origin);
-                            const auto& dist = glm::length(position - rayToLight.origin);
-                            HitInfo hitInfoTemp;
-                            bvh.intersect(rayToLight, hitInfoTemp, features);
-                            rayToLight.t = std::min(dist, rayToLight.t);
-                            if (std::abs(dist - rayToLight.t) < 0.000001f){
-                                drawRay(rayToLight, color);
-                            } else {
-                                drawRay(rayToLight, {1.0f, 0, 0});
-                            }
-
                             res += computeShading(position, color, features, ray, hitInfo) / (float)(N * N)
                                 * testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
                         }
