@@ -67,6 +67,9 @@ int main(int argc, char** argv)
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
         BvhInterface bvh { &scene };
 
+        // threshold above which the values are boxfiltered
+        float threshold = 0.5f;
+        int boxSize = 0;
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
         bool debugBVHLevel { false };
@@ -146,6 +149,12 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
                 ImGui::Checkbox("BVH SAH binning", &config.features.extra.enableBvhSahBinning);
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
+                if (config.features.extra.enableBloomEffect) {
+                    ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f);
+                }
+                if (config.features.extra.enableBloomEffect) {
+                    ImGui::SliderInt("Box filter size", &boxSize, 0, 32);
+                }
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
@@ -355,6 +364,9 @@ int main(int argc, char** argv)
                 screen.clear(glm::vec3(0.0f));
                 renderRayTracing(scene, camera, bvh, screen, config.features);
                 screen.setPixel(0, 0, glm::vec3(1.0f));
+                if (config.features.extra.enableBloomEffect) {
+                    screen.applyBloomFilter(threshold, 2 * boxSize + 1);
+                }
                 screen.draw(); // Takes the image generated using ray tracing and outputs it to the screen using OpenGL.
             } break;
             default:
