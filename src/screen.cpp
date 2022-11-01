@@ -34,8 +34,9 @@ void Screen::applyBloomFilter(const float threshold, const int boxSize)
     // screen containing only pixels where the max of colour values is greater than x
     // Screen filteredScreen(m_resolution, m_presentable);
 
+    const int width = this->m_resolution[0], height = this->m_resolution[1];
     // 2D array containing the pixels
-    glm::vec3 table[m_resolution[0]][m_resolution[1]];
+    std::vector<std::vector<glm::vec3>> table(width, std::vector<glm::vec3>(height));
 
     // iterator for the original vector
     size_t i = 0;

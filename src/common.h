@@ -74,5 +74,5 @@ struct Features {
     bool enableAccelStructure = false;
     bool debugOptimisedNodes = false;
 
-    ExtraFeatures extra = {};
+    ExtraFeatures extra;
 };
