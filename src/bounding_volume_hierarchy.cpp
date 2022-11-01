@@ -25,7 +25,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 
     this->m_numLevels = 0;
     for (const auto& node : this->nodes) {
-        this->m_numLevels = std::max(this->m_numLevels, node.level);
+        this->m_numLevels = std::max(this->m_numLevels, node.level + 1);
     }
 }
 
@@ -45,7 +45,7 @@ AxisAlignedBox getBox(
     const Scene& scene)
 {
     glm::vec3 lower = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
-    glm::vec3 upper = { std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
+    glm::vec3 upper = { std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest() };
     for (auto it = begin; it != end; it += 1) {
         auto triangle = *it;
         const auto& mesh = scene.meshes[triangle.meshIndex];
@@ -67,8 +67,8 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
     const auto beginIt = triangles.begin() + left;
     const auto endIt = triangles.begin() + right;
 
-    if (right - left <= 1 || level > 11) {
-        this->nodes.push_back({ true, level, triangles, getBox(beginIt, endIt, *this->m_pScene) });
+    if (right - left <= 1 || level > 16) {
+        this->nodes.push_back({ true, level, std::vector<TriangleOrNode>(beginIt, endIt), getBox(beginIt, endIt, *this->m_pScene) });
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
     }
@@ -79,7 +79,7 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
         return median1[whichAxis] < median2[whichAxis];
     });
 
-    size_t median = (left + right) / 2;
+    size_t median = (left + right + 1) / 2;
     const auto leftIndex = this->constructorHelper(triangles, left, median, (whichAxis + 1) % 3, level + 1);
     const auto rightIndex = this->constructorHelper(triangles, median, right, (whichAxis + 1) % 3, level + 1);
 
@@ -121,6 +121,14 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
     }
 }
 
+void drawLeafTriangle(const glm::uvec3& triangle, const Mesh& mesh, const glm::vec3& color)
+{
+    const auto& v0 = mesh.vertices[triangle[0]];
+    const auto& v1 = mesh.vertices[triangle[1]];
+    const auto& v2 = mesh.vertices[triangle[2]];
+    drawTriangle(v0, v1, v2, color);
+}
+
 // Use this function to visualize your leaf nodes. This is useful for debugging. The function
 // receives the leaf node to be draw (think of the ith leaf node). Draw the AABB of the leaf node and all contained triangles.
 // You can draw the triangles with different colors. NoteL leafIdx is not the index in the node vector, it is the
@@ -130,9 +138,16 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // Draw the AABB as a transparent green box.
     // AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
+    size_t leafCounter = 0;
     for (size_t i = 0; i <= this->nodes.size(); ++i) {
-        if (this->nodes[i].isLeaf && leafIdx == i + 1) {
+        if (this->nodes[i].isLeaf) ++leafCounter;
+        if (this->nodes[i].isLeaf && leafCounter == leafIdx) {
             drawAABB(this->nodes[i].box, DrawMode::Wireframe, glm::vec3(0.0f, 1.05f, 1.05f), 1.0f);
+            for (const auto& triangle : this->nodes[i].triangles) {
+                const auto& mesh = this->m_pScene->meshes[triangle.meshIndex];
+                const auto& tr = mesh.triangles[triangle.triangleIndex];
+                drawLeafTriangle(tr, mesh, {1.0f, 1.0f, 0.0f});
+            }
         }
     }
     // Draw the AABB as a (white) wireframe box.
@@ -185,14 +200,6 @@ float getClosestIntersectionWithBox(const AxisAlignedBox& box, const Ray& ray)
     Ray newRay = { ray.origin, ray.direction, ray.t };
     intersectRayWithShape(box, newRay);
     return newRay.t;
-}
-
-void drawLeafTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2, const glm::vec3& color)
-{
-    // const auto& v0 = mesh.vertices[triangle[0]];
-    // const auto& v1 = mesh.vertices[triangle[1]];
-    // const auto& v2 = mesh.vertices[triangle[2]];
-    drawTriangle(v0, v1, v2, color);
 }
 
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
@@ -268,9 +275,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             }
         }
         const auto intersectionHappened = closestIntersection != std::numeric_limits<float>::max();
-        const auto& mesh = this->m_pScene->meshes[meshInd].vertices;
-        if (intersectionHappened)
-            drawLeafTriangle(mesh[intersectionTriangle[0]], mesh[intersectionTriangle[1]], mesh[intersectionTriangle[2]], { 0.0f, 1.0f, 0.0f });
+        if (intersectionHappened) {
+            drawLeafTriangle(intersectionTriangle, this->m_pScene->meshes[meshInd], { 0.0f, 1.0f, 0.0f });
+        }
         return intersectionHappened;
     }
 }
