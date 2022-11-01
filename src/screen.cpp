@@ -34,10 +34,11 @@ void Screen::applyBloomFilter(const float threshold, const int boxSize)
     // screen containing only pixels where the max of colour values is greater than x
     // Screen filteredScreen(m_resolution, m_presentable);
 
+    // 2D array containing the pixels
     glm::vec3 table[m_resolution[0]][m_resolution[1]];
 
     // iterator for the original vector
-    int i = 0;
+    size_t i = 0;
 
     // filter the screen for the pixels above the threshold
     for (size_t width = 0; width < m_resolution[0]; width++) {
@@ -68,20 +69,11 @@ void Screen::applyBloomFilter(const float threshold, const int boxSize)
                 }
                 table[width][height] = (sum / float(boxSize * boxSize));
             }
+            //adding the boxfiltered image to the original screen
             m_textureData[i] += table[width][height];
-            // filteredScreen.m_textureData[i] = table[width][height];
             i++;
         }
     }
-
-    // STUFF FOR DEBUG
-    // for (size_t i = 0; i < m_textureData.size(); i++) {
-    //     auto maxColour = std::max(m_textureData[i][0], std::max(m_textureData[i][1], m_textureData[i][2]));
-    //     if (maxColour > threshold) {
-    //         filteredScreen.m_textureData[i] = m_textureData[i];
-    //     }
-    // }
-    // m_textureData = filteredScreen.m_textureData;
 }
 
 void Screen::clear(const glm::vec3& color)

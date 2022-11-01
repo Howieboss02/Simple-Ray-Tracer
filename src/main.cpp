@@ -69,6 +69,8 @@ int main(int argc, char** argv)
 
         // threshold above which the values are boxfiltered
         float threshold = 0.5f;
+        // boxSize should always be odd the actual argument passed 
+        // to the function is 2 * boxSize + 1
         int boxSize = 0;
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
@@ -153,7 +155,7 @@ int main(int argc, char** argv)
                     ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f);
                 }
                 if (config.features.extra.enableBloomEffect) {
-                    ImGui::SliderInt("Box filter size", &boxSize, 0, 32);
+                    ImGui::SliderInt("Box filter size", &boxSize, 0, 50);
                 }
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
