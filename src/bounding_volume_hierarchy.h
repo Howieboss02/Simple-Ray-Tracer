@@ -35,10 +35,12 @@ struct Node {
 class BoundingVolumeHierarchy {
 public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
-    BoundingVolumeHierarchy(Scene* pScene);
+    BoundingVolumeHierarchy(Scene* pScene, const Features& features);
 
     // construction helper, returns index of last added node
     size_t constructorHelper(std::vector<TriangleOrNode>& triangles, size_t left, size_t right, int whichAxis, int level);
+    size_t sahConstructorHelper(std::vector<TriangleOrNode>& triangles, size_t left, size_t right, int whichAxis, int level);
+
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;

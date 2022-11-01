@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
     this->m_pScene = pScene;
@@ -20,8 +20,11 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
             triangles.push_back(TriangleOrNode { i, j });
         }
     }
-
-    constructorHelper(triangles, 0, triangles.size(), 0, 0);
+    if (features.extra.enableBvhSahBinning) {
+        sahConstructorHelper(triangles, 0, triangles.size(), 0, 0);
+    } else {
+        constructorHelper(triangles, 0, triangles.size(), 0, 0);
+    }
 
     this->m_numLevels = 0;
     for (const auto& node : this->nodes) {
@@ -88,6 +91,81 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
     return this->nodes.size() - 1;
 }
 
+float getProb(const AxisAlignedBox& inner, const AxisAlignedBox& outer)
+{
+    float innerA = std::abs(inner.lower.x - inner.upper.x);
+    float innerB = std::abs(inner.lower.y - inner.upper.y);
+    float innerC = std::abs(inner.lower.z - inner.upper.z);
+
+    float outerA = std::abs(outer.lower.x - outer.upper.x);
+    float outerB = std::abs(outer.lower.y - outer.upper.y);
+    float outerC = std::abs(outer.lower.z - outer.upper.z);
+
+    float areaInner = 2 * (innerA * innerB + innerB * innerC + innerC * innerA);
+    float areaOuter = 2 * (outerA * outerB + outerB * outerC + outerC * outerA);
+
+    return areaInner / areaInner;
+}
+
+// cost calculation function
+std::pair<float, std::vector<TriangleOrNode>::iterator> calculateCostOfDivision(
+    const std::vector<TriangleOrNode>::iterator begin,
+    const std::vector<TriangleOrNode>::iterator end,
+    const Scene& scene,
+    float boundary,
+    int whichAxis)
+{
+    auto middle = begin;
+    while (getMedian(*middle, scene)[whichAxis] < boundary && middle != end)
+        ++middle;
+    auto outerBox = getBox(begin, end, scene);
+    auto leftBox = getBox(begin, middle, scene);
+    auto rightBox = getBox(middle, end, scene);
+    return { getProb(leftBox, outerBox) * (middle - begin) + getProb(rightBox, outerBox) * (end - middle), middle };
+}
+
+// which axis can work as a depth indicator
+size_t BoundingVolumeHierarchy::sahConstructorHelper(std::vector<TriangleOrNode>& triangles, size_t left, size_t right, int whichAxis, int level)
+{
+    const auto beginIt = triangles.begin() + left;
+    const auto endIt = triangles.begin() + right;
+
+    if (right - left <= 1 || level > 16) {
+        this->nodes.push_back({ true, level, std::vector<TriangleOrNode>(beginIt, endIt), getBox(beginIt, endIt, *this->m_pScene) });
+        this->m_numLeaves += 1;
+        return this->nodes.size() - 1;
+    }
+
+    std::sort(triangles.begin() + left, triangles.begin() + right, [this, whichAxis](const TriangleOrNode& triangle1, const TriangleOrNode& triangle2) {
+        const auto median1 = getMedian(triangle1, *this->m_pScene);
+        const auto median2 = getMedian(triangle2, *this->m_pScene);
+        return median1[whichAxis] < median2[whichAxis];
+    });
+
+    const int binsNumber = std::min(5UL, right - left - 1);
+    const auto leftBoundary = getMedian(*beginIt, *this->m_pScene)[whichAxis];
+    const auto rightBoundary = getMedian(*(endIt - 1), *this->m_pScene)[whichAxis];
+    const size_t step = (leftBoundary - rightBoundary) / binsNumber;
+    float minCost = std::numeric_limits<float>::lowest();
+    size_t median = left;
+    for (size_t i = 1; i < binsNumber; ++i) {
+        const auto boundary = leftBoundary + step * i;
+        const auto p = calculateCostOfDivision(beginIt, endIt, *this->m_pScene, boundary, whichAxis);
+        const auto cost = p.first;
+        if (cost < minCost) {
+            minCost = cost;
+            median = p.second - triangles.begin();
+        }
+    }
+
+    const auto leftIndex = this->constructorHelper(triangles, left, median, (whichAxis + 1) % 3, level + 1);
+    const auto rightIndex = this->constructorHelper(triangles, median, right, (whichAxis + 1) % 3, level + 1);
+
+    const auto children = std::vector<TriangleOrNode> { { 0, 0, leftIndex }, { 0, 0, rightIndex } };
+    this->nodes.push_back({ false, level, children, getBox(beginIt, endIt, *this->m_pScene) });
+    return this->nodes.size() - 1;
+}
+
 // Return the depth of the tree that you constructed. This is used to tell the
 // slider in the UI how many steps it should display for Visual Debug 1.
 int BoundingVolumeHierarchy::numLevels() const
@@ -140,13 +218,14 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
     size_t leafCounter = 0;
     for (size_t i = 0; i <= this->nodes.size(); ++i) {
-        if (this->nodes[i].isLeaf) ++leafCounter;
+        if (this->nodes[i].isLeaf)
+            ++leafCounter;
         if (this->nodes[i].isLeaf && leafCounter == leafIdx) {
             drawAABB(this->nodes[i].box, DrawMode::Wireframe, glm::vec3(0.0f, 1.05f, 1.05f), 1.0f);
             for (const auto& triangle : this->nodes[i].triangles) {
                 const auto& mesh = this->m_pScene->meshes[triangle.meshIndex];
                 const auto& tr = mesh.triangles[triangle.triangleIndex];
-                drawLeafTriangle(tr, mesh, {1.0f, 1.0f, 0.0f});
+                drawLeafTriangle(tr, mesh, { 1.0f, 1.0f, 0.0f });
             }
         }
     }
