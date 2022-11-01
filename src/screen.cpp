@@ -10,8 +10,8 @@ DISABLE_WARNINGS_PUSH()
 DISABLE_WARNINGS_POP()
 #include <algorithm>
 #include <framework/opengl_includes.h>
-#include <string>
 #include <iostream>
+#include <string>
 
 Screen::Screen(const glm::ivec2& resolution, bool presentable)
     : m_presentable(presentable)
@@ -26,6 +26,53 @@ Screen::Screen(const glm::ivec2& resolution, bool presentable)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glBindTexture(GL_TEXTURE_2D, 0);
+    }
+}
+
+void Screen::applyBloomFilter(const float threshold, const int boxSize)
+{
+    // screen containing only pixels where the max of colour values is greater than x
+    // Screen filteredScreen(m_resolution, m_presentable);
+
+    // 2D array containing the pixels
+    glm::vec3 table[m_resolution[0]][m_resolution[1]];
+
+    // iterator for the original vector
+    size_t i = 0;
+
+    // filter the screen for the pixels above the threshold
+    for (size_t width = 0; width < m_resolution[0]; width++) {
+        for (size_t height = 0; height < m_resolution[1]; height++) {
+            auto maxColour = std::max(m_textureData[i][0], std::max(m_textureData[i][1], m_textureData[i][2]));
+            if (maxColour > threshold) {
+                table[width][height] = m_textureData[i];
+            } else {
+                table[width][height] = { 0.0f, 0.0f, 0.0f };
+            }
+            i++;
+        }
+    }
+
+    // box filter of the image above threshold
+    i = 0;
+    int half = boxSize / 2;
+    for (size_t width = 0; width < m_resolution[0]; width++) {
+        for (size_t height = 0; height < m_resolution[1]; height++) {
+
+            if (width >= half && width < m_resolution[0] - half && height >= half && height < m_resolution[1] - half) {
+                glm::vec3 sum = { 0.0f, 0.0f, 0.0f };
+
+                for (size_t a = width - half; a < width + half; a++) {
+                    for (size_t b = height - half; b < height + half; b++) {
+                        sum += table[a][b];
+                    }
+                }
+                table[width][height] = (sum / float(boxSize * boxSize));
+            }
+            //adding the boxfiltered image to the original screen
+            m_textureData[i] += table[width][height];
+            i++;
+        }
     }
 }
 
