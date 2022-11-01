@@ -6,14 +6,27 @@
 #ifdef NDEBUG
 #include <omp.h>
 #endif
+#include "iostream"
+
+void motionBlurDebug(Ray ray, const Scene scene, const BvhInterface bvh, const Features features){
+    srand(time(0));
+    glm::vec3 Lo = {0, 0, 0};
+    glm::vec3 trueOrigin = ray.origin;
+    const size_t N = scene.samples;
+    HitInfo hitInfo;
+    for (size_t t = 0; t < N; t++) {
+        float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
+        ray.origin = trueOrigin + glm::normalize(scene.directionVector) * (float)(scene.time0 + (random)* (scene.time1 - scene.time0));
+        bvh.intersect(ray, hitInfo, features);
+        drawRay(ray,{0,1,0});
+    }
+}
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo, features)) {
-
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
-
         if (features.enableRecursive) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
             // Verifying if the ray intersects a specular surface and if the rayDepth is less than 5
@@ -31,6 +44,10 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
         }
 
+        if(features.extra.enableMotionBlur){
+            motionBlurDebug(ray, scene, bvh, features);
+        }
+
         // Set the color of the pixel to the color of the surface if the ray hits.
         return Lo;
     } else {
@@ -40,6 +57,19 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         // Set the color of the pixel to black if the ray misses.
         return glm::vec3(0.0f);
     }
+}
+
+glm::vec3 motionBlur(Ray ray, const Scene scene, const BvhInterface bvh, const Features features){
+    srand(time(0));
+    glm::vec3 Lo = {0, 0, 0};
+    glm::vec3 trueOrigin = ray.origin;
+    const size_t N = scene.samples;
+    for (size_t t = 0; t < N; t++) {
+        float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
+        ray.origin = trueOrigin + glm::normalize(scene.directionVector) * (float)(scene.time0 + (random)* (scene.time1 - scene.time0));
+        Lo += getFinalColor(scene, bvh, ray, features) / (float)N;
+    }
+    return Lo;
 }
 
 void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
@@ -56,8 +86,13 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(x) / float(windowResolution.x) * 2.0f - 1.0f,
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
-            const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+             Ray cameraRay = camera.generateRay(normalizedPixelPos);
+            if(features.extra.enableMotionBlur) {
+                screen.setPixel(x, y, motionBlur(cameraRay, scene, bvh, features));
+            }else{
+                screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            }
         }
+
     }
 }
