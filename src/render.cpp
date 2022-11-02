@@ -28,19 +28,20 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             isTransparencyEnabled = true;
             Ray transparentRay = { ray.origin + ray.direction * (0.000001f + ray.t), ray.direction, std::numeric_limits<float>::max() };
             Ray reflection = computeReflectionRay(ray, hitInfo);
-            // Verifying if the ray intersects a specular surface and if the rayDepth is less than 5
-            if (rayDepth < 5) {
-                // Adding the reflected light with consideration to the specularity
-
+            // Verifying if the ray intersects a surface with lower transparency and if the rayDepth is less than 5
+            if (rayDepth < 5 && hitInfo.material.transparency < 1.0f) {
                 finalColor += hitInfo.material.transparency * (Lo) + (1 - hitInfo.material.transparency) * (getFinalColor(scene, bvh, transparentRay, features, rayDepth + 1));
+            } else if (rayDepth < 5 && hitInfo.material.transparency == 1.0f) {
+                finalColor += Lo;
             }
         }
 
         // Draw a ray of the color of the surface if it hits the surface and the shading is enabled.
         if (features.enableShading) {
             drawRay(ray, Lo);
+        } else if(features.extra.enableTransparency) {
+            drawRay(ray, glm::vec3(1.0f) - Lo);
         }
-        // Draw a black ray if the shading is disabled.
         else {
             drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
         }
@@ -59,40 +60,6 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         return glm::vec3(0.0f);
     }
 }
-
-// glm::vec3 getFinalTransparencyColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
-// {
-//     HitInfo hitInfo;
-//     if (bvh.intersect(ray, hitInfo, features)) {
-
-//         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
-//         if (features.extra.enableTransparency) {
-//             Ray transparentRay = {ray.origin + ray.direction * 0.000001f, ray.direction, std::numeric_limits<float>::max()};
-//             Ray reflection = computeReflectionRay(ray, hitInfo);
-//             // Verifying if the ray intersects a specular surface and if the rayDepth is less than 5
-//             if(hitInfo.material.ks != glm::vec3 {0.0, 0.0, 0.0} && rayDepth < 5)
-//                 // Adding the reflected light with consideration to the specularity
-//                 Lo += (1 - hitInfo.material.transparency) * (hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth + 1)) + hitInfo.material.transparency * (getFinalColor(scene, bvh, transparentRay, features, rayDepth + 1) );
-//         }
-
-//         // Draw a ray of the color of the surface if it hits the surface and the shading is enabled.
-//         if(features.enableShading) {
-//             drawRay(ray, Lo);
-//         }
-//         // Draw a black ray if the shading is disabled.
-//         else{
-//             drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
-//         }
-
-//         // Set the color of the pixel to the color of the surface if the ray hits.
-//         return Lo;
-//     } else {
-//         // Draw a red debug ray if the ray missed.
-//         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
-//         // Set the color of the pixel to black if the ray misses.
-//         return glm::vec3(0.0f);
-//     }
-// }
 
 void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
 {
