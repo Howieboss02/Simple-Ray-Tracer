@@ -74,8 +74,10 @@ int main(int argc, char** argv)
         int boxSize = 0;
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
+        int sahDebugLevel = 0;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
+        bool debugSahLevel { false };
         ViewMode viewMode { ViewMode::Rasterization };
 
         window.registerKeyCallback([&](int key, int /* scancode */, int action, int /* mods */) {
@@ -149,7 +151,7 @@ int main(int argc, char** argv)
 
             if (ImGui::CollapsingHeader("Extra Features")) {
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
-                ImGui::Checkbox("BVH SAH binning", &config.features.extra.enableBvhSahBinning);
+                ImGui::Checkbox("BVH SAH binning (change model)", &config.features.extra.enableBvhSahBinning);
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
                 if (config.features.extra.enableBloomEffect) {
                     ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f);
@@ -210,6 +212,10 @@ int main(int argc, char** argv)
                 if (debugBVHLeaf)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
                 ImGui::Checkbox("Draw Intersected but Unvisited Nodes",  &config.features.debugOptimisedNodes);
+                ImGui::Checkbox("Draw SAH division planes on each level", &debugSahLevel);
+                if (debugSahLevel ){
+                    ImGui::SliderInt("SAH Level", &sahDebugLevel, 0, bvh.numLevels() - 2);
+                }
             }
 
             ImGui::Spacing();
@@ -343,7 +349,7 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
-                if (debugBVHLevel || debugBVHLeaf) {
+                if (debugBVHLevel || debugBVHLeaf || debugSahLevel) {
                     glPushAttrib(GL_ALL_ATTRIB_BITS);
                     setOpenGLMatrices(camera);
                     glDisable(GL_LIGHTING);
@@ -357,7 +363,11 @@ int main(int argc, char** argv)
                     if (debugBVHLevel)
                         bvh.debugDrawLevel(bvhDebugLevel);
                     if (debugBVHLeaf)
+                        std::cout << "drawing a leaf\n";
                         bvh.debugDrawLeaf(bvhDebugLeaf);
+                    if (debugSahLevel && &config.features.extra.enableBvhSahBinning) {
+                        bvh.debugDrawSahLevel(sahDebugLevel);
+                    }
                     enableDebugDraw = false;
                     glPopAttrib();
                 }

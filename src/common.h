@@ -62,6 +62,7 @@ struct ExtraFeatures {
     bool enableGlossyReflection = false;
     bool enableTransparency = false;
     bool enableDepthOfField = false;
+    bool enableDebugForSAH = false;
 };
 
 struct Features {

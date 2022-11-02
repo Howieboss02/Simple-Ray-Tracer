@@ -12,6 +12,7 @@
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
+    this->features = &features;
     this->m_pScene = pScene;
     auto triangles = std::vector<TriangleOrNode>();
     for (size_t i = 0; i < pScene->meshes.size(); ++i) {
@@ -91,20 +92,22 @@ size_t BoundingVolumeHierarchy::constructorHelper(std::vector<TriangleOrNode>& t
     return this->nodes.size() - 1;
 }
 
+// SAH Constructor Helper
+
 float getProb(const AxisAlignedBox& inner, const AxisAlignedBox& outer)
 {
     float innerA = std::abs(inner.lower.x - inner.upper.x);
     float innerB = std::abs(inner.lower.y - inner.upper.y);
     float innerC = std::abs(inner.lower.z - inner.upper.z);
-
     float outerA = std::abs(outer.lower.x - outer.upper.x);
     float outerB = std::abs(outer.lower.y - outer.upper.y);
     float outerC = std::abs(outer.lower.z - outer.upper.z);
-
+    
     float areaInner = 2 * (innerA * innerB + innerB * innerC + innerC * innerA);
     float areaOuter = 2 * (outerA * outerB + outerB * outerC + outerC * outerA);
 
-    return areaInner / areaInner;
+    if (areaOuter == 0) return 0;
+    return areaInner / areaOuter;
 }
 
 // cost calculation function
@@ -130,7 +133,7 @@ size_t BoundingVolumeHierarchy::sahConstructorHelper(std::vector<TriangleOrNode>
     const auto beginIt = triangles.begin() + left;
     const auto endIt = triangles.begin() + right;
 
-    if (right - left <= 1 || level > 16) {
+    if (right - left <= 1 || level > 20) {
         this->nodes.push_back({ true, level, std::vector<TriangleOrNode>(beginIt, endIt), getBox(beginIt, endIt, *this->m_pScene) });
         this->m_numLeaves += 1;
         return this->nodes.size() - 1;
@@ -142,20 +145,33 @@ size_t BoundingVolumeHierarchy::sahConstructorHelper(std::vector<TriangleOrNode>
         return median1[whichAxis] < median2[whichAxis];
     });
 
-    const int binsNumber = std::min(static_cast<size_t>(5), right - left - 1);
+    const int planesNumber = std::min(static_cast<size_t>(5), right - left - 1 );
     const auto leftBoundary = getMedian(*beginIt, *this->m_pScene)[whichAxis];
     const auto rightBoundary = getMedian(*(endIt - 1), *this->m_pScene)[whichAxis];
-    const size_t step = (leftBoundary - rightBoundary) / binsNumber;
-    float minCost = std::numeric_limits<float>::lowest();
+    const float step = (rightBoundary - leftBoundary) / (planesNumber + 1);
+    float minCost = std::numeric_limits<float>::max(), planeBoundary = leftBoundary;
     size_t median = left;
-    for (size_t i = 1; i < binsNumber; ++i) {
+    for (size_t i = 1; i <= planesNumber; ++i) {
         const auto boundary = leftBoundary + step * i;
+        
         const auto p = calculateCostOfDivision(beginIt, endIt, *this->m_pScene, boundary, whichAxis);
+        
         const auto cost = p.first;
         if (cost < minCost) {
             minCost = cost;
             median = p.second - triangles.begin();
+            planeBoundary = boundary;
         }
+    }
+    {
+        while (this->debugPlanes.size() < level + 1) {
+            this->debugPlanes.push_back(std::vector<AxisAlignedBox>());
+        }
+        auto box = getBox(beginIt, endIt, *this->m_pScene);
+
+        box.lower[whichAxis] = planeBoundary;
+        box.upper[whichAxis] = planeBoundary + 0.0001;
+        debugPlanes[level].push_back(box);
     }
 
     const auto leftIndex = this->constructorHelper(triangles, left, median, (whichAxis + 1) % 3, level + 1);
@@ -196,6 +212,21 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
             // drawAABB(aabb, DrawMode::Wireframe);
             drawAABB(node.box, DrawMode::Wireframe, color, 1.0f);
         }
+    }
+}
+
+// Use this function to visualize your BVH. This is useful for debugging. Use the functions in
+// draw.h to draw the various shapes. We have extended the AABB draw functions to support wireframe
+// mode, arbitrary colors and transparency.
+void BoundingVolumeHierarchy::debugDrawSahLevel(int level)
+{
+    if (!(*this->features).extra.enableBvhSahBinning) return;
+    const auto color = glm::vec3(1.0f, 1.0f, 1.0f);
+    std::cout << debugPlanes.size();
+    for (const auto& box : this->debugPlanes[level]) {
+        
+        // drawAABB(box, DrawMode::Filled, color, 1.0f);
+        drawAABB(box, DrawMode::Filled, {173.0/256, 216.0/256, 230.0/256}, 1.0f);
     }
 }
 
