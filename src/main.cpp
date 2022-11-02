@@ -69,12 +69,12 @@ int main(int argc, char** argv)
 
         // threshold above which the values are boxfiltered
         float threshold = 0.5f;
-        // boxSize should always be odd the actual argument passed 
+        // boxSize should always be odd the actual argument passed
         // to the function is 2 * boxSize + 1
         int boxSize = 0;
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
-        int sahLevel = 0;
+        int sahDebugLevel = 0;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
         bool debugSahLevel { false };
@@ -206,12 +206,18 @@ int main(int argc, char** argv)
             ImGui::Text("Debugging");
             if (viewMode == ViewMode::Rasterization) {
                 ImGui::Checkbox("Draw BVH Level", &debugBVHLevel);
-                if (debugBVHLevel)
+                if (debugBVHLevel) {
                     ImGui::SliderInt("BVH Level", &bvhDebugLevel, 0, bvh.numLevels() - 1);
+                }
                 ImGui::Checkbox("Draw BVH Leaf", &debugBVHLeaf);
-                if (debugBVHLeaf)
+                if (debugBVHLeaf) {
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
-                ImGui::Checkbox("Draw Intersected but Unvisited Nodes",  &config.features.debugOptimisedNodes);
+                }
+                ImGui::Checkbox("Draw Intersected but Unvisited Nodes", &config.features.debugOptimisedNodes);
+                ImGui::Checkbox("SAH planes", &debugSahLevel);
+                if (debugSahLevel) {
+                    ImGui::SliderInt("SAH Level", &sahDebugLevel, 0, bvh.numLevels() - 2);
+                }
             }
 
             ImGui::Spacing();
@@ -363,7 +369,7 @@ int main(int argc, char** argv)
                         bvh.debugDrawLeaf(bvhDebugLeaf);
                     }
                     if (debugSahLevel) {
-                        bvh.debugDrawSahLevel(sahLevel, config.features);
+                        bvh.debugDrawSahLevel(sahDebugLevel, config.features);
                     }
                     enableDebugDraw = false;
                     glPopAttrib();
