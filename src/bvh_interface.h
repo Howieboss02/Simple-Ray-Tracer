@@ -13,7 +13,7 @@ class BvhInterface {
 public:
 
     // Constructor. Receives the scene and builds the bounding volume hierarchy
-    BvhInterface(Scene* pScene);
+    BvhInterface(Scene* pScene, const Features& features);
 
 
     // Return how many levels there are in the tree that you have constructed.
@@ -29,6 +29,7 @@ public:
 
     // Visual Debug 2: Draw the triangles of the i-th leaf
     void debugDrawLeaf(int leafIdx);
+    void debugDrawSahLevel(int level, const Features& features);
 
 
     // Return true if something is hit, returns false otherwise.
