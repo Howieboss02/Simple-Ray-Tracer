@@ -142,7 +142,7 @@ size_t BoundingVolumeHierarchy::sahConstructorHelper(std::vector<TriangleOrNode>
         return median1[whichAxis] < median2[whichAxis];
     });
 
-    const int binsNumber = std::min(5UL, right - left - 1);
+    const int binsNumber = std::min(static_cast<size_t>(5), right - left - 1);
     const auto leftBoundary = getMedian(*beginIt, *this->m_pScene)[whichAxis];
     const auto rightBoundary = getMedian(*(endIt - 1), *this->m_pScene)[whichAxis];
     const size_t step = (leftBoundary - rightBoundary) / binsNumber;
