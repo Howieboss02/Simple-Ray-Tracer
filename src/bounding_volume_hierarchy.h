@@ -53,7 +53,7 @@ public:
     // Visual Debug 2: Draw the triangles of the i-th leaf
     void debugDrawLeaf(int leafIdx);
 
-    void debugDrawSahLevel(int level);
+    void debugDrawSahLevel(int level, const Features& features);
 
     // Return true if something is hit, returns false otherwise.
     // Only find hits if they are closer than t stored in the ray and the intersection
@@ -64,7 +64,6 @@ private:
     int m_numLevels = 0;
     int m_numLeaves = 0;
     Scene* m_pScene;
-    const Features* features;
 
     std::vector<std::vector<AxisAlignedBox>> debugPlanes;
 

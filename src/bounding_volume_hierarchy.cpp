@@ -12,7 +12,6 @@
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
-    this->features = &features;
     this->m_pScene = pScene;
     auto triangles = std::vector<TriangleOrNode>();
     for (size_t i = 0; i < pScene->meshes.size(); ++i) {
@@ -218,9 +217,9 @@ void BoundingVolumeHierarchy::debugDrawLevel(int level)
 // Use this function to visualize your BVH. This is useful for debugging. Use the functions in
 // draw.h to draw the various shapes. We have extended the AABB draw functions to support wireframe
 // mode, arbitrary colors and transparency.
-void BoundingVolumeHierarchy::debugDrawSahLevel(int level)
+void BoundingVolumeHierarchy::debugDrawSahLevel(int level, const Features& features)
 {
-    if (!(*this->features).extra.enableBvhSahBinning) return;
+    if (features.extra.enableBvhSahBinning) return;
     const auto color = glm::vec3(1.0f, 1.0f, 1.0f);
     std::cout << debugPlanes.size();
     for (const auto& box : this->debugPlanes[level]) {

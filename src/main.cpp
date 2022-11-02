@@ -366,7 +366,7 @@ int main(int argc, char** argv)
                         std::cout << "drawing a leaf\n";
                         bvh.debugDrawLeaf(bvhDebugLeaf);
                     if (debugSahLevel && &config.features.extra.enableBvhSahBinning) {
-                        bvh.debugDrawSahLevel(sahDebugLevel);
+                        bvh.debugDrawSahLevel(sahDebugLevel, config.features);
                     }
                     enableDebugDraw = false;
                     glPopAttrib();

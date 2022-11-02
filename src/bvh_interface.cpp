@@ -31,9 +31,9 @@ void BvhInterface::debugDrawLevel(int level)
     m_impl->debugDrawLevel(level);
 }
 
-void BvhInterface::debugDrawSahLevel(int level)
+void BvhInterface::debugDrawSahLevel(int level, const Features& features)
 {
-    m_impl->debugDrawSahLevel(level);
+    m_impl->debugDrawSahLevel(level, features);
 }
 
 
