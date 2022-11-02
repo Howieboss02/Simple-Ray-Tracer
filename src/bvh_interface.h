@@ -29,6 +29,7 @@ public:
 
     // Visual Debug 2: Draw the triangles of the i-th leaf
     void debugDrawLeaf(int leafIdx);
+    void debugDrawSahLevel(int level, const Features& features);
 
 
     // Return true if something is hit, returns false otherwise.

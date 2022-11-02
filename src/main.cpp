@@ -74,8 +74,10 @@ int main(int argc, char** argv)
         int boxSize = 0;
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
+        int sahLevel = 0;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
+        bool debugSahLevel { false };
         ViewMode viewMode { ViewMode::Rasterization };
 
         window.registerKeyCallback([&](int key, int /* scancode */, int action, int /* mods */) {
@@ -343,7 +345,7 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
-                if (debugBVHLevel || debugBVHLeaf) {
+                if (debugBVHLevel || debugBVHLeaf || debugSahLevel) {
                     glPushAttrib(GL_ALL_ATTRIB_BITS);
                     setOpenGLMatrices(camera);
                     glDisable(GL_LIGHTING);
@@ -354,10 +356,15 @@ int main(int argc, char** argv)
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     enableDebugDraw = true;
-                    if (debugBVHLevel)
+                    if (debugBVHLevel) {
                         bvh.debugDrawLevel(bvhDebugLevel);
-                    if (debugBVHLeaf)
+                    }
+                    if (debugBVHLeaf) {
                         bvh.debugDrawLeaf(bvhDebugLeaf);
+                    }
+                    if (debugSahLevel) {
+                        bvh.debugDrawSahLevel(sahLevel, config.features);
+                    }
                     enableDebugDraw = false;
                     glPopAttrib();
                 }

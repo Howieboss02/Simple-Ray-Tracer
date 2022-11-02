@@ -104,7 +104,10 @@ float getProb(const AxisAlignedBox& inner, const AxisAlignedBox& outer)
     float areaInner = 2 * (innerA * innerB + innerB * innerC + innerC * innerA);
     float areaOuter = 2 * (outerA * outerB + outerB * outerC + outerC * outerA);
 
-    return areaInner / areaInner;
+    if (areaOuter == 0) {
+        return 0;
+    }
+    return areaInner / areaOuter;
 }
 
 // cost calculation function
@@ -142,24 +145,30 @@ size_t BoundingVolumeHierarchy::sahConstructorHelper(std::vector<TriangleOrNode>
         return median1[whichAxis] < median2[whichAxis];
     });
 
-    const int binsNumber = std::min(static_cast<size_t>(5), right - left - 1);
+    const size_t planesNumber = std::min(static_cast<size_t>(5), right - left - 1);
     const auto leftBoundary = getMedian(*beginIt, *this->m_pScene)[whichAxis];
     const auto rightBoundary = getMedian(*(endIt - 1), *this->m_pScene)[whichAxis];
-    const size_t step = (leftBoundary - rightBoundary) / binsNumber;
-    float minCost = std::numeric_limits<float>::lowest();
+    const float step = (rightBoundary - leftBoundary) / (planesNumber + 1);
+    float minCost = std::numeric_limits<float>::max(), selectedBoundary = leftBoundary;
     size_t median = left;
-    for (size_t i = 1; i < binsNumber; ++i) {
+    for (size_t i = 1; i <= planesNumber; ++i) {
         const auto boundary = leftBoundary + step * i;
         const auto p = calculateCostOfDivision(beginIt, endIt, *this->m_pScene, boundary, whichAxis);
         const auto cost = p.first;
         if (cost < minCost) {
             minCost = cost;
             median = p.second - triangles.begin();
+            selectedBoundary = boundary;
         }
     }
 
-    const auto leftIndex = this->constructorHelper(triangles, left, median, (whichAxis + 1) % 3, level + 1);
-    const auto rightIndex = this->constructorHelper(triangles, median, right, (whichAxis + 1) % 3, level + 1);
+    auto box = getBox(beginIt, endIt, *this->m_pScene);
+    box.lower[whichAxis] = selectedBoundary;
+    box.upper[whichAxis] = selectedBoundary + 0.0001f;
+    debugPlanes[level].push_back(box);
+
+    const auto leftIndex = this->sahConstructorHelper(triangles, left, median, (whichAxis + 1) % 3, level + 1);
+    const auto rightIndex = this->sahConstructorHelper(triangles, median, right, (whichAxis + 1) % 3, level + 1);
 
     const auto children = std::vector<TriangleOrNode> { { 0, 0, leftIndex }, { 0, 0, rightIndex } };
     this->nodes.push_back({ false, level, children, getBox(beginIt, endIt, *this->m_pScene) });
@@ -235,6 +244,15 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     // drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
 
     // once you find the leaf node, you can use the function drawTriangle (from draw.h) to draw the contained primitives
+}
+
+void BoundingVolumeHierarchy::debugDrawSahLevel(int level, const Features& features)
+{
+    if (!features.extra.enableBvhSahBinning) return;
+    const auto color = glm::vec3(173.0/256, 216.0/256, 230.0/256);
+    for (const auto& box : this->debugPlanes[level]) {
+        drawAABB(box, DrawMode::Filled, color, 1.0f);
+    }
 }
 
 bool shoudlBeReverted(Ray& ray, HitInfo& hitInfo)

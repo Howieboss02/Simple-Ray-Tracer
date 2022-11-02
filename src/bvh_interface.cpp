@@ -31,6 +31,10 @@ void BvhInterface::debugDrawLevel(int level)
     m_impl->debugDrawLevel(level);
 }
 
+void BvhInterface::debugDrawSahLevel(int level, const Features& features) {
+    m_impl->debugDrawSahLevel(level, features);
+}
+
 
 // Use this function to visualize your leaf nodes. This is useful for debugging. The function 
 // receives the leaf node to be draw (think of the ith leaf node). Draw the AABB of the leaf node and all contained triangles.
