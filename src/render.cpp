@@ -17,7 +17,7 @@ void motionBlurDebug(Ray ray, const Scene scene, const BvhInterface bvh, const F
     for (size_t t = 0; t < N; t++) {
         float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
         ray.origin = trueOrigin + glm::normalize(scene.directionVector) * (float)(scene.time0 + (random)* (scene.time1 - scene.time0));
-        bvh.intersect(ray, hitInfo, features);
+        ray.t = {std::numeric_limits<float>::max()};
         drawRay(ray,{0,1,0});
     }
 }
@@ -66,7 +66,8 @@ glm::vec3 motionBlur(Ray ray, const Scene scene, const BvhInterface bvh, const F
     const size_t N = scene.samples;
     for (size_t t = 0; t < N; t++) {
         float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
-        ray.origin = trueOrigin + glm::normalize(scene.directionVector) * (float)(scene.time0 + (random)* (scene.time1 - scene.time0));
+        ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + (random) * (scene.time1 - scene.time0));
+        ray.t = {std::numeric_limits<float>::max()};
         Lo += getFinalColor(scene, bvh, ray, features) / (float)N;
     }
     return Lo;
