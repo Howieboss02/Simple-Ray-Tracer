@@ -37,10 +37,8 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         }
 
         // Draw a ray of the color of the surface if it hits the surface and the shading is enabled.
-        if (features.enableShading) {
+        if (features.enableShading || features.extra.enableTransparency) {
             drawRay(ray, Lo);
-        } else if(features.extra.enableTransparency) {
-            drawRay(ray, glm::vec3(1.0f) - Lo);
         }
         else {
             drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
