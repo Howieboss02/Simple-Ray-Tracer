@@ -112,7 +112,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
         // If shading is enabled, compute the contribution from all lights.
         // Creating a nul vector which will be the result of all computation of all light sources
         glm::vec3 res = { 0.0, 0.0, 0.0 };
-        srand(time(0));
         // Iterating through all the light sources
         for (const auto& light : scene.lights) {
             if (std::holds_alternative<PointLight>(light)) {
