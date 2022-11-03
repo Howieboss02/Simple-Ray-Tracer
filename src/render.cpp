@@ -7,6 +7,8 @@
 #ifdef NDEBUG
 #include <omp.h>
 #endif
+#include "iostream"
+#include "cmath"
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
@@ -59,14 +61,21 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     }
 }
 
-glm::vec3 DOF (const Scene& scene, const BvhInterface& bvh, const Features& features, Ray& ray){
+glm::vec3 DOF (const Scene scene, const BvhInterface bvh, const Features features, Ray ray){
     glm::vec3 Lo = {0.0, 0.0, 0.0};
-    glm::vec3 ConvergePoint = ray.origin + ray.direction * scene.focalLength;
+    glm::vec3 ConvergePoint = ray.origin + ray.direction * (float)scene.focalLength;
+    glm::vec3 trueOrigin = ray.origin;
     srand(time(0));
     for(int i = 0; i < scene.DOF_samples; i ++){
-        float random = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        float r1 = (-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))));
+        float r2 = (-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))));
+        float r3 = (-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))));
+        //std::cout<< r1 << " " << r2 << '\n';
+        ray.origin = trueOrigin + glm::vec3 {r1 * scene.aperture, r2 * scene.aperture, r3 * scene.aperture};
+        ray.direction = glm::normalize(ConvergePoint - ray.origin);
+        Lo += getFinalColor(scene, bvh, ray, features) / (float) scene.DOF_samples;
     }
-
+    return Lo;
 }
 
 void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
@@ -84,7 +93,11 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            if(features.extra.enableDepthOfField){
+                screen.setPixel(x, y, DOF(scene, bvh, features, cameraRay));
+            }else{
+                screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            }
         }
     }
 }

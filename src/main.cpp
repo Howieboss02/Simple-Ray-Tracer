@@ -219,7 +219,7 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("SAH Level", &sahDebugLevel, 0, bvh.numLevels() - 2);
                 }
                 if(config.features.extra.enableDepthOfField){
-                    ImGui::SliderFloat("Focal length", &scene.focalLength, 0.0, 10.0);
+                    ImGui::SliderInt("Focal length", &scene.focalLength, 0, 10);
                     ImGui::SliderFloat("Aperture", &scene.aperture, 0.0, 1.0);
                     ImGui::SliderInt("Samples", &scene.DOF_samples, 0, 200);
                 }
