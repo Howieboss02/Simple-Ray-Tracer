@@ -103,3 +103,4 @@ Scene loadSceneFromFile(const std::filesystem::path& path, const std::vector<std
 
     return scene;
 }
+

@@ -9,7 +9,6 @@
 #include "iostream"
 
 void motionBlurDebug(Ray ray, const Scene& scene, const BvhInterface& bvh, const Features& features){
-    srand(time(0));
     glm::vec3 Lo = {0, 0, 0};
     glm::vec3 trueOrigin = ray.origin;
     const size_t N = scene.MB_samples;
@@ -60,17 +59,16 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
 }
 
 glm::vec3 motionBlur(Ray ray, const Scene& scene, const BvhInterface& bvh, const Features& features){
-    srand(time(0));
     glm::vec3 Lo = {0, 0, 0};
     glm::vec3 trueOrigin = ray.origin;
     const int N = scene.MB_samples;
     for (int t = 0; t < N; t++) {
-        float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
-        ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + (random) * (scene.time1 - scene.time0));
+        float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX)) / 2;
+        ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + random * (scene.time1 - scene.time0) - ((scene.time1 - scene.time0) / 2));
         ray.t = {std::numeric_limits<float>::max()};
-        Lo += getFinalColor(scene, bvh, ray, features);
+        Lo += getFinalColor(scene, bvh, ray, features) / (float)N;
     }
-    return Lo / (float)N;
+    return Lo;
 }
 
 void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
