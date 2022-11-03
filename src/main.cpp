@@ -70,8 +70,6 @@ int main(int argc, char** argv)
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
         int samples = 0;
-        float time0 = 0.0;
-        float time1 = 0.0;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
 
@@ -205,10 +203,10 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
                 ImGui::Checkbox("Draw Intersected but Unvisited Nodes",  &config.features.debugOptimisedNodes);
                 if (config.features.extra.enableMotionBlur){
-                    ImGui::SliderInt("No. of Samples", &samples, 0, 2000);
+                    ImGui::SliderInt("No. of Samples", &scene.MB_samples, 0, 2000);
                     ImGui::DragFloat3("Direction Vector", glm::value_ptr(scene.directionVector), 0.0f, 0.0f, 0.0f);
-                    ImGui::SliderFloat("time0", &time0, 0.0, 1.0);
-                    ImGui::SliderFloat("time1", &time1, time0, 1.0);
+                    ImGui::SliderFloat("time0", &scene.time0, 0.0, 1.0);
+                    ImGui::SliderFloat("time1", &scene.time1, scene.time0, 1.0);
                 }
             }
 
@@ -321,11 +319,6 @@ int main(int argc, char** argv)
             switch (viewMode) {
             case ViewMode::Rasterization: {
                 glPushAttrib(GL_ALL_ATTRIB_BITS);
-                if(config.features.extra.enableMotionBlur) {
-                    scene.samples = samples;
-                    scene.time0 = time0;
-                    scene.time1 = time1;
-                }
                 if (debugBVHLeaf) {
                     glEnable(GL_POLYGON_OFFSET_FILL);
                     // To ensure that debug draw is always visible, adjust the scale used to calculate the depth value.
