@@ -57,13 +57,19 @@ float testVisibilityLightSample(
     }
     auto lightRayColor = debugColor;
     float ans = 1;
-    Ray newRay = { intersectionPoint, samplePos - intersectionPoint };
+    Ray newRay = { intersectionPoint, samplePos - intersectionPoint, 1 };
     newRay.origin += glm::normalize(newRay.direction) * 0.001f;
     if (bvh.intersect(newRay, hitInfo, features) && newRay.t < 1 - 0.01) {
         lightRayColor = { 1, 0, 0 };
         ans = 0.0;
     }
-    newRay.t = 1;
+    if (features.enableSoftShadow) {
+        drawRay(newRay, lightRayColor);
+    }
+    if (features.enableHardShadow) {
+        newRay.t = 1;
+        drawRay(newRay, lightRayColor);
+    }
     drawRay(newRay, lightRayColor);
     return ans;
 }
@@ -120,15 +126,14 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 if (features.enableSoftShadow) {
                     const size_t N = 42;
                     for (size_t t = 0; t < N; t++) {
-                        float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                        float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
                         auto trand = (float)t + r;
                         auto position = glm::vec3(0.0);
                         auto color = glm::vec3(0.0);
                         sampleSegmentLight(segmentLight, position, color, trand / (float)N);
 
-                        res += computeShading(position, color, features, ray, hitInfo);
-                        if (features.enableHardShadow)
-                            res *= testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+                        res += computeShading(position, color, features, ray, hitInfo)
+                            * testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
                     }
                 }
             } else if (std::holds_alternative<ParallelogramLight>(light)) {
@@ -137,8 +142,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     const size_t N = 10;
                     for (size_t i = 0; i < N; i++) {
                         for (size_t j = 0; j < N; j++) {
-                            float r1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-                            float r2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                            float r1 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+                            float r2 = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
                             auto xrand = (float)i + r1;
                             auto yrand = (float)j + r2;
                             auto position = glm::vec3(0.0);
