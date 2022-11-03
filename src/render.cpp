@@ -49,7 +49,7 @@ glm::vec2 getEnvironmentTexelCoords(glm::vec3 p)
         }
     }
     auto ans = center + shift;
-    assert(0 <= ans.x && ans.x <= 1 && 0 <= ans.y && ans.y <= 1);
+    if (!(0 <= ans.x && ans.x <= 1 && 0 <= ans.y && ans.y <= 1)) return {0, 0};
     return ans;
 }
 
