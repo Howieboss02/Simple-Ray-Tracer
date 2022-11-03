@@ -63,14 +63,14 @@ glm::vec3 motionBlur(Ray ray, const Scene scene, const BvhInterface bvh, const F
     srand(time(0));
     glm::vec3 Lo = {0, 0, 0};
     glm::vec3 trueOrigin = ray.origin;
-    const size_t N = scene.samples;
-    for (size_t t = 0; t < N; t++) {
+    const int N = scene.samples;
+    for (int t = 0; t < N; t++) {
         float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
         ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + (random) * (scene.time1 - scene.time0));
         ray.t = {std::numeric_limits<float>::max()};
-        Lo += getFinalColor(scene, bvh, ray, features) / (float)N;
+        Lo += getFinalColor(scene, bvh, ray, features);
     }
-    return Lo;
+    return Lo / (float)N;
 }
 
 void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
