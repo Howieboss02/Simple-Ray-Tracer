@@ -31,10 +31,10 @@ glm::vec2 getEnvironmentTexelCoords(glm::vec3 p)
 
     if (absY >= absX && absY >= absZ) {
         if (p.y > 0) { // face 2
-            center = { 1.5f / 4, 0.5f / 3 };
+            center = { 1.5f / 4, 2.5f / 3 };
             shift = { p.x / 8, -p.z / 6 };
         } else { // face 3
-            center = { 1.5f / 4, 2.5f / 3 };
+            center = { 1.5f / 4, 0.5f / 3 };
             shift = { p.x / 8, p.z / 6 };
         }
     }
