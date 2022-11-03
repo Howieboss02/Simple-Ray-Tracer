@@ -48,6 +48,9 @@ float testVisibilityLightSample(
     Ray ray,
     HitInfo hitInfo)
 {
+    if (!features.enableHardShadow && !features.enableSoftShadow) {
+        return 1;
+    }
     const auto intersectionPoint = ray.origin + ray.direction * ray.t;
     if (intersectionPoint == samplePos) {
         return 1;
@@ -59,16 +62,9 @@ float testVisibilityLightSample(
     if (bvh.intersect(newRay, hitInfo, features) && newRay.t < 1 - 0.01) {
         lightRayColor = { 1, 0, 0 };
         ans = 0.0;
-    }else{
-        newRay.t = 1;
     }
-    if (features.enableSoftShadow){
-        drawRay(newRay, lightRayColor);
-    }
-    if(features.enableHardShadow){
-        newRay.t = 1;
-        drawRay(newRay, lightRayColor);
-    }
+    newRay.t = 1;
+    drawRay(newRay, lightRayColor);
     return ans;
 }
 
@@ -129,8 +125,10 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                         auto position = glm::vec3(0.0);
                         auto color = glm::vec3(0.0);
                         sampleSegmentLight(segmentLight, position, color, trand / (float)N);
-                        res += computeShading(position, color, features, ray, hitInfo) / (float)N
-                            * testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
+
+                        res += computeShading(position, color, features, ray, hitInfo);
+                        if (features.enableHardShadow)
+                            res *= testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
                     }
                 }
             } else if (std::holds_alternative<ParallelogramLight>(light)) {
