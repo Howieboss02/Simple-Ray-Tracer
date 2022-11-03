@@ -8,11 +8,11 @@
 #endif
 #include "iostream"
 
-void motionBlurDebug(Ray ray, const Scene scene, const BvhInterface bvh, const Features features){
+void motionBlurDebug(Ray ray, const Scene& scene, const BvhInterface& bvh, const Features& features){
     srand(time(0));
     glm::vec3 Lo = {0, 0, 0};
     glm::vec3 trueOrigin = ray.origin;
-    const size_t N = scene.samples;
+    const size_t N = scene.MB_samples;
     HitInfo hitInfo;
     for (size_t t = 0; t < N; t++) {
         float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
@@ -59,11 +59,11 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     }
 }
 
-glm::vec3 motionBlur(Ray ray, const Scene scene, const BvhInterface bvh, const Features features){
+glm::vec3 motionBlur(Ray ray, const Scene& scene, const BvhInterface& bvh, const Features& features){
     srand(time(0));
     glm::vec3 Lo = {0, 0, 0};
     glm::vec3 trueOrigin = ray.origin;
-    const int N = scene.samples;
+    const int N = scene.MB_samples;
     for (int t = 0; t < N; t++) {
         float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
         ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + (random) * (scene.time1 - scene.time0));
