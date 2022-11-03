@@ -59,7 +59,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     }
 }
 
-void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
+void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, const float& threshold, const int& boxSize)
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
@@ -76,5 +76,8 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
             screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
         }
+    }
+    if(features.extra.enableBloomEffect){
+        screen.applyBloomFilter(threshold, 2 * boxSize + 1);
     }
 }
