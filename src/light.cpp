@@ -117,8 +117,12 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             if (std::holds_alternative<PointLight>(light)) {
                 // If the light is a PointLight, add the result of the computeShading method to the res vector
                 const PointLight pointLight = std::get<PointLight>(light);
-                res += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
-                   // * testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+                if(features.enableHardShadow) {
+                    res += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo)
+                        * testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo);
+                } else{
+                    res += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
+                }
             } else if (std::holds_alternative<SegmentLight>(light)) {
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
                 if (features.enableSoftShadow) {

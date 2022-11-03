@@ -10,6 +10,20 @@
 #include "iostream"
 #include "cmath"
 
+void DOF_debug (const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray){
+    glm::vec3 ConvergePoint = ray.origin + ray.direction * (float)scene.focalLength;
+    glm::vec3 trueOrigin = ray.origin;
+    srand(time(0));
+    for(int i = 0; i < scene.DOF_samples; i ++){
+        float r1 = (-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))));
+        float r2 = (-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))));
+        float r3 = (-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))));
+        ray.origin = trueOrigin + glm::vec3 {r1 * scene.aperture, r2 * scene.aperture, r3 * scene.aperture};
+        ray.direction = glm::normalize(ConvergePoint - ray.origin);
+        drawRay(ray, {0,1,0});
+    }
+}
+
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
@@ -46,12 +60,15 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
         }
 
+        if(features.extra.enableDepthOfField){
+            DOF_debug(scene, bvh, features, ray);
+        }
+
         if (isTransparencyEnabled) {
             return finalColor;
         } else {
             return Lo;
         }
-
     } else {
         // Draw a red debug ray if the ray missed.
 
@@ -61,7 +78,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     }
 }
 
-glm::vec3 DOF (const Scene scene, const BvhInterface bvh, const Features features, Ray ray){
+glm::vec3 DOF (const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray){
     glm::vec3 Lo = {0.0, 0.0, 0.0};
     glm::vec3 ConvergePoint = ray.origin + ray.direction * (float)scene.focalLength;
     glm::vec3 trueOrigin = ray.origin;
