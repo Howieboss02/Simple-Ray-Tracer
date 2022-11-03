@@ -70,7 +70,6 @@ float testVisibilityLightSample(
         newRay.t = 1;
         drawRay(newRay, lightRayColor);
     }
-    drawRay(newRay, lightRayColor);
     return ans;
 }
 
