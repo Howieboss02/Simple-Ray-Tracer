@@ -248,8 +248,10 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 
 void BoundingVolumeHierarchy::debugDrawSahLevel(int level, const Features& features)
 {
-    if (!features.extra.enableBvhSahBinning) return;
-    const auto color = glm::vec3(173.0/256, 216.0/256, 230.0/256);
+    if (!features.extra.enableBvhSahBinning) {
+        return;
+    }
+    const auto color = glm::vec3(173.0 / 256, 216.0 / 256, 230.0 / 256);
     for (const auto& box : this->debugPlanes[level]) {
         drawAABB(box, DrawMode::Filled, color, 1.0f);
     }
@@ -275,8 +277,14 @@ bool intersectWithLeafTriangle(Ray& ray, HitInfo& hitInfo, glm::uvec3 triangle, 
         hitInfo.normal = glm::normalize(glm::cross(v1.position - v0.position, v2.position - v0.position));
 
         if (features.enableNormalInterp) {
-            hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, ray.origin + ray.direction * ray.t);
+            const auto intersection = ray.origin + ray.direction * ray.t;
+            hitInfo.barycentricCoord = computeBarycentricCoord(v0.position, v1.position, v2.position, intersection);
             hitInfo.normal = glm::normalize(interpolateNormal(v0.normal, v1.normal, v2.normal, hitInfo.barycentricCoord));
+
+            drawRay({ v0.position, glm::normalize(v0.normal), 0.2 }, { 0.5, 0.5, 0.5 });
+            drawRay({ v1.position, glm::normalize(v1.normal), 0.2 }, { 0.5, 0.5, 0.5 });
+            drawRay({ v2.position, glm::normalize(v2.normal), 0.2 }, { 0.5, 0.5, 0.5 });
+            drawRay({ intersection, glm::normalize(hitInfo.normal), 0.3 }, { 1, 1, 1 });
         }
         hitInfo.normal = shoudlBeReverted(ray, hitInfo) ? -hitInfo.normal : hitInfo.normal;
 
