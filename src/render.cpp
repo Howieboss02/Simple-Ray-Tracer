@@ -59,6 +59,16 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     }
 }
 
+glm::vec3 DOF (const Scene& scene, const BvhInterface& bvh, const Features& features, Ray& ray){
+    glm::vec3 Lo = {0.0, 0.0, 0.0};
+    glm::vec3 ConvergePoint = ray.origin + ray.direction * scene.focalLength;
+    srand(time(0));
+    for(int i = 0; i < scene.DOF_samples; i ++){
+        float random = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    }
+
+}
+
 void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features)
 {
     glm::ivec2 windowResolution = screen.resolution();

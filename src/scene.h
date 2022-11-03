@@ -30,6 +30,9 @@ struct Scene {
     std::vector<Mesh> meshes;
     std::vector<Sphere> spheres;
     std::vector<std::variant<PointLight, SegmentLight, ParallelogramLight>> lights;
+    float focalLength = 0;
+    float aperture = 0;
+    int DOF_samples = 0;
 };
 
 // Load a prebuilt scene.
