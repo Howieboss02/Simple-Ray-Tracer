@@ -132,7 +132,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                         auto color = glm::vec3(0.0);
                         sampleSegmentLight(segmentLight, position, color, trand / (float)N);
 
-                        res += computeShading(position, color, features, ray, hitInfo)
+                        res += computeShading(position, color, features, ray, hitInfo) / (float)N
                             * testVisibilityLightSample(position, color, bvh, features, ray, hitInfo);
                     }
                 }
