@@ -171,7 +171,7 @@ int main(int argc, char** argv)
                 if(config.features.extra.enableMultipleRaysPerPixel){
                     ImGui::SliderInt("number of rays per pixel squared", &numRays, 1, 10);
                 }
-
+                ImGui::Checkbox("Motion Blur", &config.features.extra.enableMotionBlur);
             }
             ImGui::Separator();
 
@@ -225,6 +225,17 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("SAH planes", &debugSahLevel);
                 if (debugSahLevel) {
                     ImGui::SliderInt("SAH Level", &sahDebugLevel, 0, bvh.numLevels() - 2);
+                }
+                if(config.features.extra.enableDepthOfField){
+                    ImGui::SliderInt("Focal length", &scene.focalLength, 0, 10);
+                    ImGui::SliderFloat("Aperture", &scene.aperture, 0.0, 1.0);
+                    ImGui::SliderInt("Samples", &scene.DOF_samples, 0, 200);
+                }
+                if (config.features.extra.enableMotionBlur){
+                    ImGui::SliderInt("No. of Samples", &scene.MB_samples, 0, 2000);
+                    ImGui::DragFloat3("Direction Vector", glm::value_ptr(scene.directionVector), 0.0f, 0.0f, 0.0f);
+                    ImGui::SliderFloat("time0", &scene.time0, 0.0, 1.0);
+                    ImGui::SliderFloat("time1", &scene.time1, scene.time0, 1.0);
                 }
             }
 
