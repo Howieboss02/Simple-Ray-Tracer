@@ -207,8 +207,8 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                     for(int j = 0; j < numRays; j++){
                         float randX = static_cast<float>(dist(mt)) / RAND_MAX;
                         float randY = static_cast<float>(dist(mt)) / RAND_MAX;
-                        float a = float(i) + float(randX/float(numRays)) + float(x);
-                        float b = float(j) + float(randY/float(numRays)) + float(y);
+                        float a = (float(i) + randX)/float(numRays) + float(x);
+                        float b = (float(j) + randY)/float(numRays) + float(y);
                         const glm::vec2 normalizedPixelPos2 {
                             float(a) / float(windowResolution.x) * 2.0f - 1.0f,
                             float(b) / float(windowResolution.y) * 2.0f - 1.0f
