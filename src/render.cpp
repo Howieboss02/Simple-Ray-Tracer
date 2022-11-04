@@ -12,7 +12,6 @@ void motionBlurDebug(Ray ray, const Scene& scene, const BvhInterface& bvh, const
     glm::vec3 Lo = {0, 0, 0};
     glm::vec3 trueOrigin = ray.origin;
     const size_t N = scene.MB_samples;
-    HitInfo hitInfo;
     for (size_t t = 0; t < N; t++) {
         float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
         ray.origin = trueOrigin + glm::normalize(scene.directionVector) * (float)(scene.time0 + (random)* (scene.time1 - scene.time0));
@@ -23,6 +22,11 @@ void motionBlurDebug(Ray ray, const Scene& scene, const BvhInterface& bvh, const
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
+    // Debugger for motion blur.
+    if(features.extra.enableMotionBlur){
+        motionBlurDebug(ray, scene, bvh, features);
+    }
+
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo, features)) {
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
@@ -42,11 +46,6 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         else{
             drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
         }
-
-        if(features.extra.enableMotionBlur){
-            motionBlurDebug(ray, scene, bvh, features);
-        }
-
         // Set the color of the pixel to the color of the surface if the ray hits.
         return Lo;
     } else {
@@ -63,7 +62,7 @@ glm::vec3 motionBlur(Ray ray, const Scene& scene, const BvhInterface& bvh, const
     glm::vec3 trueOrigin = ray.origin;
     const int N = scene.MB_samples;
     for (int t = 0; t < N; t++) {
-        float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX)) / 2;
+        float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
         ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + random * (scene.time1 - scene.time0) - ((scene.time1 - scene.time0) / 2));
         ray.t = {std::numeric_limits<float>::max()};
         Lo += getFinalColor(scene, bvh, ray, features) / (float)N;
