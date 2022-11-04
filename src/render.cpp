@@ -95,6 +95,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     }
 
     HitInfo hitInfo;
+    hitInfo.depthOfRecursion = rayDepth;
     if (bvh.intersect(ray, hitInfo, features)) {
 
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);

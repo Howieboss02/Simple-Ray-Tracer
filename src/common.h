@@ -16,6 +16,7 @@ struct HitInfo {
     glm::vec3 barycentricCoord;
     glm::vec2 texCoord;
     Material material;
+    int depthOfRecursion = 0;
 };
 
 struct Plane {

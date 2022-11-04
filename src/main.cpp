@@ -28,6 +28,7 @@ DISABLE_WARNINGS_POP()
 #include <string>
 #include <thread>
 #include <variant>
+#include <bounding_volume_hierarchy.h>
 
 // This is the main application. The code in here does not need to be modified.
 enum class ViewMode {
@@ -241,6 +242,9 @@ int main(int argc, char** argv)
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
                 }
                 ImGui::Checkbox("Draw Intersected but Unvisited Nodes", &config.features.debugOptimisedNodes);
+                if(config.features.debugOptimisedNodes) {
+                    ImGui::SliderInt("Depth of recursion", &depthOfRecursion, 0, 5);
+                }
                 ImGui::Checkbox("SAH planes", &debugSahLevel);
                 if (debugSahLevel) {
                     ImGui::SliderInt("SAH Level", &sahDebugLevel, 0, bvh.numLevels() - 2);

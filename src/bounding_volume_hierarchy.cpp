@@ -9,6 +9,8 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
+int depthOfRecursion = 0;
+
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
@@ -374,7 +376,10 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                         deque.push_back(index);
                     } else if (closest < std::numeric_limits<float>::max() && features.debugOptimisedNodes) {
                         // draw unvisited inteersected node
-                        drawAABB(next.box, DrawMode::Wireframe, glm::vec3(1.0f, 0.00f, 0.0f), 0.1f);
+                        if(hitInfo.depthOfRecursion == depthOfRecursion){
+                            drawAABB(next.box, DrawMode::Wireframe, glm::vec3(1.0f, 0.00f, 0.0f), 0.1f);
+                            
+                        }
                     }
                 }
             }

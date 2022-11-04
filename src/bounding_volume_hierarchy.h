@@ -18,6 +18,7 @@ struct TriangleOrNode {
     size_t nodeIndex;
 };
 
+extern int depthOfRecursion;
 /**
  * Node struct
  * level - level of the node from bottom of its subtree. i.e. leafs have 0 level
@@ -65,7 +66,6 @@ private:
     int m_numLevels = 0;
     int m_numLeaves = 0;
     Scene* m_pScene;
-
     std::vector<std::vector<AxisAlignedBox>> debugPlanes = std::vector<std::vector<AxisAlignedBox>>(30, std::vector<AxisAlignedBox>());
 
     std::vector<Node> nodes;
