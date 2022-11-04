@@ -69,7 +69,6 @@ int main(int argc, char** argv)
 
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
-        int samples = 0;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
 

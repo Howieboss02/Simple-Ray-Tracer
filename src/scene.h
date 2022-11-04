@@ -30,10 +30,15 @@ struct Scene {
     std::vector<Mesh> meshes;
     std::vector<Sphere> spheres;
     std::vector<std::variant<PointLight, SegmentLight, ParallelogramLight>> lights;
+    // Variables for motion blur.
     int MB_samples;
     float time0 = 0.0;
     float time1 = 0.0;
     glm::vec3 directionVector = {0, 0, 0};
+    // Variables for depth of field.
+    int focalLength = 0;
+    float aperture = 0;
+    int DOF_samples = 0;
 };
 
 // Load a prebuilt scene.
