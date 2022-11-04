@@ -28,12 +28,21 @@ DISABLE_WARNINGS_POP()
 #include <string>
 #include <thread>
 #include <variant>
+#include <bounding_volume_hierarchy.h>
 
 // This is the main application. The code in here does not need to be modified.
 enum class ViewMode {
     Rasterization = 0,
     RayTracing = 1
 };
+// threshold above which the values are boxfiltered
+float threshold = 0.5f;
+// boxSize should always be odd the actual argument passed
+// to the function is 2 * boxSize + 1
+int boxSize = 0;
+
+// numRays * numRays number of rays per pixel
+int numRays = 1;
 
 int debugBVHLeafId = 0;
 
@@ -65,12 +74,14 @@ int main(int argc, char** argv)
         SceneType sceneType { SceneType::SingleTriangle };
         std::optional<Ray> optDebugRay;
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
-        BvhInterface bvh { &scene };
+        BvhInterface bvh { &scene, config.features };
 
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
+        int sahDebugLevel = 0;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
+        bool debugSahLevel { false };
         ViewMode viewMode { ViewMode::Rasterization };
 
         window.registerKeyCallback([&](int key, int /* scancode */, int action, int /* mods */) {
@@ -79,7 +90,7 @@ int main(int argc, char** argv)
                 case GLFW_KEY_R: {
                     // Shoot a ray. Produce a ray from camera to the far plane.
                     const auto tmp = window.getNormalizedCursorPos();
-                        optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
+                    optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
                 } break;
                 case GLFW_KEY_A: {
                     debugBVHLeafId++;
@@ -118,7 +129,15 @@ int main(int argc, char** argv)
                     optDebugRay.reset();
                     scene = loadScenePrebuilt(sceneType, config.dataPath);
                     selectedLightIdx = scene.lights.empty() ? -1 : 0;
-                    bvh = BvhInterface(&scene);
+
+                    using clock = std::chrono::high_resolution_clock;
+                    const auto start = clock::now();
+                    bvh = BvhInterface(&scene, config.features);
+                    const auto end = clock::now();
+                    std::cout << "Time to generate BVH "
+                              << (config.features.extra.enableBvhSahBinning ? "+ SAH: " : ": ")
+                              << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
+
                     if (optDebugRay) {
                         HitInfo dummy {};
                         bvh.intersect(*optDebugRay, dummy, config.features);
@@ -146,11 +165,33 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
                 ImGui::Checkbox("BVH SAH binning", &config.features.extra.enableBvhSahBinning);
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
+                if (config.features.extra.enableBloomEffect) {
+                    ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f);
+                }
+                if (config.features.extra.enableBloomEffect) {
+                    ImGui::SliderInt("Box filter size", &boxSize, 0, 50);
+                }
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
+                if(config.features.extra.enableDepthOfField){
+                    config.features.extra.enableMotionBlur = false;
+                    config.features.extra.enableMultipleRaysPerPixel = false;
+                }
+                ImGui::Checkbox("Multiple Rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
+                if(config.features.extra.enableMultipleRaysPerPixel){
+                    ImGui::SliderInt("number of rays per pixel squared", &numRays, 1, 10);
+                    config.features.extra.enableMotionBlur = false;
+                    config.features.extra.enableDepthOfField = false;
+                }
+                ImGui::Checkbox("Motion Blur", &config.features.extra.enableMotionBlur);
+                if(config.features.extra.enableMotionBlur){
+                    config.features.extra.enableMultipleRaysPerPixel = false;
+                    config.features.extra.enableDepthOfField = false;
+                    
+                }
             }
             ImGui::Separator();
 
@@ -180,7 +221,7 @@ int main(int argc, char** argv)
                     // Perform a new render and measure the time it took to generate the image.
                     using clock = std::chrono::high_resolution_clock;
                     const auto start = clock::now();
-                    renderRayTracing(scene, camera, bvh, screen, config.features);
+                    renderRayTracing(scene, camera, bvh, screen, config.features, threshold, 2 * boxSize + 1, numRays);
                     const auto end = clock::now();
                     std::cout << "Time to render image: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
                     // Store the new image.
@@ -192,12 +233,34 @@ int main(int argc, char** argv)
             ImGui::Separator();
             ImGui::Text("Debugging");
             if (viewMode == ViewMode::Rasterization) {
+                ImGui::Checkbox("Enable Draw", &config.features.enableDraw);
                 ImGui::Checkbox("Draw BVH Level", &debugBVHLevel);
-                if (debugBVHLevel)
+                if (debugBVHLevel) {
                     ImGui::SliderInt("BVH Level", &bvhDebugLevel, 0, bvh.numLevels() - 1);
+                }
                 ImGui::Checkbox("Draw BVH Leaf", &debugBVHLeaf);
-                if (debugBVHLeaf)
+                if (debugBVHLeaf) {
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
+                }
+                ImGui::Checkbox("Draw Intersected but Unvisited Nodes", &config.features.debugOptimisedNodes);
+                if(config.features.debugOptimisedNodes) {
+                    ImGui::SliderInt("Depth of recursion", &depthOfRecursion, 0, 5);
+                }
+                ImGui::Checkbox("SAH planes", &debugSahLevel);
+                if (debugSahLevel) {
+                    ImGui::SliderInt("SAH Level", &sahDebugLevel, 0, bvh.numLevels() - 2);
+                }
+                if(config.features.extra.enableDepthOfField){
+                    ImGui::SliderInt("Focal length", &scene.focalLength, 0, 10);
+                    ImGui::SliderFloat("Aperture", &scene.aperture, 0.0, 1.0);
+                    ImGui::SliderInt("Samples", &scene.DOF_samples, 0, 200);
+                }
+                if (config.features.extra.enableMotionBlur){
+                    ImGui::SliderInt("No. of Samples", &scene.MB_samples, 0, 2000);
+                    ImGui::DragFloat3("Direction Vector", glm::value_ptr(scene.directionVector), 0.0f, 0.0f, 0.0f);
+                    ImGui::SliderFloat("time0", &scene.time0, 0.0, 1.0);
+                    ImGui::SliderFloat("time1", &scene.time1, scene.time0, 1.0);
+                }
             }
 
             ImGui::Spacing();
@@ -331,7 +394,7 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
-                if (debugBVHLevel || debugBVHLeaf) {
+                if (debugBVHLevel || debugBVHLeaf || debugSahLevel) {
                     glPushAttrib(GL_ALL_ATTRIB_BITS);
                     setOpenGLMatrices(camera);
                     glDisable(GL_LIGHTING);
@@ -342,17 +405,22 @@ int main(int argc, char** argv)
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     enableDebugDraw = true;
-                    if (debugBVHLevel)
+                    if (debugBVHLevel) {
                         bvh.debugDrawLevel(bvhDebugLevel);
-                    if (debugBVHLeaf)
+                    }
+                    if (debugBVHLeaf) {
                         bvh.debugDrawLeaf(bvhDebugLeaf);
+                    }
+                    if (debugSahLevel) {
+                        bvh.debugDrawSahLevel(sahDebugLevel, config.features);
+                    }
                     enableDebugDraw = false;
                     glPopAttrib();
                 }
             } break;
             case ViewMode::RayTracing: {
                 screen.clear(glm::vec3(0.0f));
-                renderRayTracing(scene, camera, bvh, screen, config.features);
+                renderRayTracing(scene, camera, bvh, screen, config.features, threshold, 2 * boxSize + 1, numRays);
                 screen.setPixel(0, 0, glm::vec3(1.0f));
                 screen.draw(); // Takes the image generated using ray tracing and outputs it to the screen using OpenGL.
             } break;
@@ -387,7 +455,7 @@ int main(int argc, char** argv)
                        }),
             config.scene);
 
-        BvhInterface bvh { &scene };
+        BvhInterface bvh { &scene, config.features };
 
         using clock = std::chrono::high_resolution_clock;
         // Create output directory if it does not exist.
@@ -405,7 +473,7 @@ int main(int argc, char** argv)
                 screen.clear(glm::vec3(0.0f));
                 Trackball camera { &window, glm::radians(cameraConfig.fieldOfView), cameraConfig.distanceFromLookAt };
                 camera.setCamera(cameraConfig.lookAt, glm::radians(cameraConfig.rotation), cameraConfig.distanceFromLookAt);
-                renderRayTracing(scene, camera, bvh, screen, config.features);
+                renderRayTracing(scene, camera, bvh, screen, config.features, threshold, 2 * boxSize + 1, numRays);
                 const auto filename_base = fmt::format("{}_{}_cam_{}", sceneName, start_time_string, index);
                 const auto filepath = config.outputDir / (filename_base + ".bmp");
                 fmt::print("Image {} saved to {}\n", index, filepath.string());

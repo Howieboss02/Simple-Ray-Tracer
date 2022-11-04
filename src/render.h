@@ -14,7 +14,7 @@ class BvhInterface;
 struct Features;
 
 // Main rendering function.
-void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features);
+void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, const float& threshold = 0.0f, const int& boxSize = 0, const int& numRays = 5);
 
 // Get the color of a ray.
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth = 0);
