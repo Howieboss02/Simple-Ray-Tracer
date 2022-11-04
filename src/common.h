@@ -74,6 +74,7 @@ struct Features {
     bool enableTextureMapping = false;
     bool enableAccelStructure = false;
     bool debugOptimisedNodes = false;
+    bool enableDraw = false;
 
     ExtraFeatures extra;
 };
