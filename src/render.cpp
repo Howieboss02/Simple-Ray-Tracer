@@ -11,13 +11,11 @@
 #include "cmath"
 
 void motionBlurDebug(Ray ray, const Scene& scene, const BvhInterface& bvh, const Features& features){
-    glm::vec3 Lo = {0, 0, 0};
     glm::vec3 trueOrigin = ray.origin;
     const size_t N = scene.MB_samples;
     for (size_t t = 0; t < N; t++) {
         float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
-        ray.origin = trueOrigin + glm::normalize(scene.directionVector) * (float)(scene.time0 + (random)* (scene.time1 - scene.time0));
-        ray.t = {std::numeric_limits<float>::max()};
+        ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + random * (scene.time1 - scene.time0) - ((scene.time1 - scene.time0) / 2));
         drawRay(ray,{0,1,0});
     }
 }
@@ -84,12 +82,13 @@ glm::vec2 getEnvironmentTexelCoords(glm::vec3 p)
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     // Visual debug for motion blur.
-    if(features.extra.enableMotionBlur){
+
+    if(features.extra.enableMotionBlur && features.enableDraw){
         motionBlurDebug(ray, scene, bvh, features);
     }
 
     // Visual debug for depth of field.
-    if(features.extra.enableDepthOfField){
+    if(features.extra.enableDepthOfField && features.enableDraw){
         DOF_debug(scene, bvh, features, ray);
     }
 
@@ -120,15 +119,11 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         }
 
         // Draw a ray of the color of the surface if it hits the surface and the shading is enabled.
-        if (features.enableShading || features.extra.enableTransparency) {
+        if ((features.enableShading || features.extra.enableTransparency) && features.enableDraw){
             drawRay(ray, Lo);
         }
         else {
             drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
-        }
-
-        if(features.extra.enableDepthOfField){
-            DOF_debug(scene, bvh, features, ray);
         }
 
         if (isTransparencyEnabled) {
@@ -156,12 +151,10 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
 glm::vec3 motionBlur(Ray ray, const Scene& scene, const BvhInterface& bvh, const Features& features){
     glm::vec3 Lo = {0, 0, 0};
     glm::vec3 trueOrigin = ray.origin;
-    const int N = scene.MB_samples;
-    for (int t = 0; t < N; t++) {
+    for (int t = 0; t < scene.MB_samples; t++) {
         float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
         ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + random * (scene.time1 - scene.time0) - ((scene.time1 - scene.time0) / 2));
-        ray.t = {std::numeric_limits<float>::max()};
-        Lo += getFinalColor(scene, bvh, ray, features) / (float)N;
+        Lo += getFinalColor(scene, bvh, ray, features) / (float)scene.MB_samples;
     }
     return Lo;
 }

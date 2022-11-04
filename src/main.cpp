@@ -206,6 +206,7 @@ int main(int argc, char** argv)
             ImGui::Separator();
             ImGui::Text("Debugging");
             if (viewMode == ViewMode::Rasterization) {
+                ImGui::Checkbox("Enable Draw", &config.features.enableDraw);
                 ImGui::Checkbox("Draw BVH Level", &debugBVHLevel);
                 if (debugBVHLevel) {
                     ImGui::SliderInt("BVH Level", &bvhDebugLevel, 0, bvh.numLevels() - 1);
