@@ -126,7 +126,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             } else if (std::holds_alternative<SegmentLight>(light)) {
                 const SegmentLight segmentLight = std::get<SegmentLight>(light);
                 if (features.enableSoftShadow) {
-                    const size_t N = 42;
+                    const size_t N = 100;
                     for (size_t t = 0; t < N; t++) {
                         float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
                         auto trand = (float)t + r;

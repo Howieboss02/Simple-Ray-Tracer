@@ -34,6 +34,14 @@ enum class ViewMode {
     Rasterization = 0,
     RayTracing = 1
 };
+// threshold above which the values are boxfiltered
+float threshold = 0.5f;
+// boxSize should always be odd the actual argument passed
+// to the function is 2 * boxSize + 1
+int boxSize = 0;
+
+// numRays * numRays number of rays per pixel
+int numRays = 1;
 
 int debugBVHLeafId = 0;
 
@@ -67,11 +75,6 @@ int main(int argc, char** argv)
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
         BvhInterface bvh { &scene, config.features };
 
-        // threshold above which the values are boxfiltered
-        float threshold = 0.5f;
-        // boxSize should always be odd the actual argument passed
-        // to the function is 2 * boxSize + 1
-        int boxSize = 0;
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
         int sahDebugLevel = 0;
@@ -164,7 +167,22 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
+                if(config.features.extra.enableDepthOfField){
+                    config.features.extra.enableMotionBlur = false;
+                    config.features.extra.enableMultipleRaysPerPixel = false;
+                }
+                ImGui::Checkbox("Multiple Rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
+                if(config.features.extra.enableMultipleRaysPerPixel){
+                    ImGui::SliderInt("number of rays per pixel squared", &numRays, 1, 10);
+                    config.features.extra.enableMotionBlur = false;
+                    config.features.extra.enableDepthOfField = false;
+                }
                 ImGui::Checkbox("Motion Blur", &config.features.extra.enableMotionBlur);
+                if(config.features.extra.enableMotionBlur){
+                    config.features.extra.enableMultipleRaysPerPixel = false;
+                    config.features.extra.enableDepthOfField = false;
+                    
+                }
             }
             ImGui::Separator();
 
@@ -194,7 +212,7 @@ int main(int argc, char** argv)
                     // Perform a new render and measure the time it took to generate the image.
                     using clock = std::chrono::high_resolution_clock;
                     const auto start = clock::now();
-                    renderRayTracing(scene, camera, bvh, screen, config.features);
+                    renderRayTracing(scene, camera, bvh, screen, config.features, threshold, 2 * boxSize + 1);
                     const auto end = clock::now();
                     std::cout << "Time to render image: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
                     // Store the new image.
@@ -389,11 +407,8 @@ int main(int argc, char** argv)
             } break;
             case ViewMode::RayTracing: {
                 screen.clear(glm::vec3(0.0f));
-                renderRayTracing(scene, camera, bvh, screen, config.features);
+                renderRayTracing(scene, camera, bvh, screen, config.features, threshold, 2 * boxSize + 1);
                 screen.setPixel(0, 0, glm::vec3(1.0f));
-                if (config.features.extra.enableBloomEffect) {
-                    screen.applyBloomFilter(threshold, 2 * boxSize + 1);
-                }
                 screen.draw(); // Takes the image generated using ray tracing and outputs it to the screen using OpenGL.
             } break;
             default:
@@ -445,7 +460,7 @@ int main(int argc, char** argv)
                 screen.clear(glm::vec3(0.0f));
                 Trackball camera { &window, glm::radians(cameraConfig.fieldOfView), cameraConfig.distanceFromLookAt };
                 camera.setCamera(cameraConfig.lookAt, glm::radians(cameraConfig.rotation), cameraConfig.distanceFromLookAt);
-                renderRayTracing(scene, camera, bvh, screen, config.features);
+                renderRayTracing(scene, camera, bvh, screen, config.features, threshold, 2 * boxSize + 1);
                 const auto filename_base = fmt::format("{}_{}_cam_{}", sceneName, start_time_string, index);
                 const auto filepath = config.outputDir / (filename_base + ".bmp");
                 fmt::print("Image {} saved to {}\n", index, filepath.string());
