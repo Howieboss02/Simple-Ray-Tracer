@@ -4,6 +4,7 @@
 #include "screen.h"
 #include <framework/trackball.h>
 #include <iostream>
+#include <random>
 #ifdef NDEBUG
 #include <omp.h>
 #endif
@@ -27,7 +28,6 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         if (features.extra.enableTransparency) {
             isTransparencyEnabled = true;
             Ray transparentRay = { ray.origin + ray.direction * (0.000001f + ray.t), ray.direction, std::numeric_limits<float>::max() };
-            Ray reflection = computeReflectionRay(ray, hitInfo);
             // Verifying if the ray intersects a surface with lower transparency and if the rayDepth is less than 5
             if (rayDepth < 5 && hitInfo.material.transparency < 1.0f) {
                 finalColor += hitInfo.material.transparency * (Lo) + (1 - hitInfo.material.transparency) * (getFinalColor(scene, bvh, transparentRay, features, rayDepth + 1));
@@ -59,7 +59,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     }
 }
 
-void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, const float& threshold, const int& boxSize)
+void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInterface& bvh, Screen& screen, const Features& features, const float& threshold, const int& boxSize, const int& numRays)
 {
     glm::ivec2 windowResolution = screen.resolution();
     // Enable multi threading in Release mode
@@ -73,8 +73,35 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(x) / float(windowResolution.x) * 2.0f - 1.0f,
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
-            const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+
+            glm::vec3 colour(0.0f);
+//            std::srand(time(0));
+            if(features.extra.enableMultipleRaysPerPixel){
+                std::random_device rd;
+                std::mt19937 mt(rd());
+                std::uniform_real_distribution<float> dist(0.0, 1.0);
+                for(int i = 0; i < numRays; i++){
+                    for(int j = 0; j < numRays; j++){
+                        float randX = static_cast<float>(dist(mt)) / RAND_MAX;
+                        float randY = static_cast<float>(dist(mt)) / RAND_MAX;
+                        float a = float(i) + float(randX/float(numRays)) + float(x);
+                        float b = float(j) + float(randY/float(numRays)) + float(y);
+                        const glm::vec2 normalizedPixelPos2 {
+                            float(a) / float(windowResolution.x) * 2.0f - 1.0f,
+                            float(b) / float(windowResolution.y) * 2.0f - 1.0f
+                        };
+
+                        const Ray cameraRay2 = camera.generateRay(normalizedPixelPos2);
+
+                        colour += getFinalColor(scene, bvh, cameraRay2, features);
+                    }
+                }
+                colour /= (numRays * numRays);
+                screen.setPixel(x, y, colour);
+            } else {
+                const Ray cameraRay = camera.generateRay(normalizedPixelPos);
+                screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            }
         }
     }
     if(features.extra.enableBloomEffect){

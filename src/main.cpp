@@ -40,6 +40,9 @@ float threshold = 0.5f;
 // to the function is 2 * boxSize + 1
 int boxSize = 0;
 
+// numRays * numRays number of rays per pixel
+int numRays = 1;
+
 int debugBVHLeafId = 0;
 
 static void setOpenGLMatrices(const Trackball& camera);
@@ -164,6 +167,11 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
+                ImGui::Checkbox("Multiple Rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
+                if(config.features.extra.enableMultipleRaysPerPixel){
+                    ImGui::SliderInt("number of rays per pixel squared", &numRays, 1, 10);
+                }
+
             }
             ImGui::Separator();
 
