@@ -224,6 +224,12 @@ int main(int argc, char** argv)
                     ImGui::SliderFloat("Aperture", &scene.aperture, 0.0, 1.0);
                     ImGui::SliderInt("Samples", &scene.DOF_samples, 0, 200);
                 }
+                if (config.features.extra.enableMotionBlur){
+                    ImGui::SliderInt("No. of Samples", &scene.MB_samples, 0, 2000);
+                    ImGui::DragFloat3("Direction Vector", glm::value_ptr(scene.directionVector), 0.0f, 0.0f, 0.0f);
+                    ImGui::SliderFloat("time0", &scene.time0, 0.0, 1.0);
+                    ImGui::SliderFloat("time1", &scene.time1, scene.time0, 1.0);
+                }
             }
 
             ImGui::Spacing();
