@@ -167,11 +167,22 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
                 ImGui::Checkbox("Transparency", &config.features.extra.enableTransparency);
                 ImGui::Checkbox("Depth of field", &config.features.extra.enableDepthOfField);
+                if(config.features.extra.enableDepthOfField){
+                    config.features.extra.enableMotionBlur = false;
+                    config.features.extra.enableMultipleRaysPerPixel = false;
+                }
                 ImGui::Checkbox("Multiple Rays per pixel", &config.features.extra.enableMultipleRaysPerPixel);
                 if(config.features.extra.enableMultipleRaysPerPixel){
                     ImGui::SliderInt("number of rays per pixel squared", &numRays, 1, 10);
+                    config.features.extra.enableMotionBlur = false;
+                    config.features.extra.enableDepthOfField = false;
                 }
                 ImGui::Checkbox("Motion Blur", &config.features.extra.enableMotionBlur);
+                if(config.features.extra.enableMotionBlur){
+                    config.features.extra.enableMultipleRaysPerPixel = false;
+                    config.features.extra.enableDepthOfField = false;
+                    
+                }
             }
             ImGui::Separator();
 
