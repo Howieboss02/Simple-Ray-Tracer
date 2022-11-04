@@ -127,6 +127,10 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             drawRay(ray, glm::vec3(0.0, 0.0, 0.0));
         }
 
+        if(features.extra.enableDepthOfField){
+            DOF_debug(scene, bvh, features, ray);
+        }
+
         if (isTransparencyEnabled) {
             return finalColor;
         } else {

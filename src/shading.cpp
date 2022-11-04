@@ -12,7 +12,7 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     //Normalizing the normal
     glm::vec3 normal = glm::normalize(hitInfo.normal);
     //The camera-vector is the vector of the origin of the ray
-    glm::vec3 cameraVector = ray.origin;
+    glm::vec3 cameraVector = rayPosition - ray.origin;
     //Computing the reflection-vector using the normal and the light-vector
     glm::vec3 reflectionVector = 2 * glm::dot(lightVector, normal) * normal - lightVector;
 

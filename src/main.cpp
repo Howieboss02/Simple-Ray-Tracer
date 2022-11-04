@@ -65,13 +65,19 @@ int main(int argc, char** argv)
         SceneType sceneType { SceneType::SingleTriangle };
         std::optional<Ray> optDebugRay;
         Scene scene = loadScenePrebuilt(sceneType, config.dataPath);
-        BvhInterface bvh { &scene };
+        BvhInterface bvh { &scene, config.features };
 
+        // threshold above which the values are boxfiltered
+        float threshold = 0.5f;
+        // boxSize should always be odd the actual argument passed
+        // to the function is 2 * boxSize + 1
+        int boxSize = 0;
         int bvhDebugLevel = 0;
         int bvhDebugLeaf = 0;
+        int sahDebugLevel = 0;
         bool debugBVHLevel { false };
         bool debugBVHLeaf { false };
-
+        bool debugSahLevel { false };
         ViewMode viewMode { ViewMode::Rasterization };
 
         window.registerKeyCallback([&](int key, int /* scancode */, int action, int /* mods */) {
@@ -119,7 +125,7 @@ int main(int argc, char** argv)
                     optDebugRay.reset();
                     scene = loadScenePrebuilt(sceneType, config.dataPath);
                     selectedLightIdx = scene.lights.empty() ? -1 : 0;
-                    bvh = BvhInterface(&scene);
+                    bvh = BvhInterface(&scene, config.features);
                     if (optDebugRay) {
                         HitInfo dummy {};
                         bvh.intersect(*optDebugRay, dummy, config.features);
@@ -147,6 +153,12 @@ int main(int argc, char** argv)
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
                 ImGui::Checkbox("BVH SAH binning", &config.features.extra.enableBvhSahBinning);
                 ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
+                if (config.features.extra.enableBloomEffect) {
+                    ImGui::SliderFloat("Threshold", &threshold, 0.0f, 1.0f);
+                }
+                if (config.features.extra.enableBloomEffect) {
+                    ImGui::SliderInt("Box filter size", &boxSize, 0, 50);
+                }
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
@@ -195,17 +207,22 @@ int main(int argc, char** argv)
             ImGui::Text("Debugging");
             if (viewMode == ViewMode::Rasterization) {
                 ImGui::Checkbox("Draw BVH Level", &debugBVHLevel);
-                if (debugBVHLevel)
+                if (debugBVHLevel) {
                     ImGui::SliderInt("BVH Level", &bvhDebugLevel, 0, bvh.numLevels() - 1);
+                }
                 ImGui::Checkbox("Draw BVH Leaf", &debugBVHLeaf);
-                if (debugBVHLeaf)
+                if (debugBVHLeaf) {
                     ImGui::SliderInt("BVH Leaf", &bvhDebugLeaf, 1, bvh.numLeaves());
-                ImGui::Checkbox("Draw Intersected but Unvisited Nodes",  &config.features.debugOptimisedNodes);
-                if (config.features.extra.enableMotionBlur){
-                    ImGui::SliderInt("No. of Samples", &scene.MB_samples, 0, 2000);
-                    ImGui::DragFloat3("Direction Vector", glm::value_ptr(scene.directionVector), 0.0f, 0.0f, 0.0f);
-                    ImGui::SliderFloat("time0", &scene.time0, 0.0, 1.0);
-                    ImGui::SliderFloat("time1", &scene.time1, scene.time0, 1.0);
+                }
+                ImGui::Checkbox("Draw Intersected but Unvisited Nodes", &config.features.debugOptimisedNodes);
+                ImGui::Checkbox("SAH planes", &debugSahLevel);
+                if (debugSahLevel) {
+                    ImGui::SliderInt("SAH Level", &sahDebugLevel, 0, bvh.numLevels() - 2);
+                }
+                if(config.features.extra.enableDepthOfField){
+                    ImGui::SliderInt("Focal length", &scene.focalLength, 0, 10);
+                    ImGui::SliderFloat("Aperture", &scene.aperture, 0.0, 1.0);
+                    ImGui::SliderInt("Samples", &scene.DOF_samples, 0, 200);
                 }
             }
 
@@ -340,7 +357,7 @@ int main(int argc, char** argv)
 
                 drawLightsOpenGL(scene, camera, selectedLightIdx);
 
-                if (debugBVHLevel || debugBVHLeaf) {
+                if (debugBVHLevel || debugBVHLeaf || debugSahLevel) {
                     glPushAttrib(GL_ALL_ATTRIB_BITS);
                     setOpenGLMatrices(camera);
                     glDisable(GL_LIGHTING);
@@ -351,10 +368,15 @@ int main(int argc, char** argv)
                     glEnable(GL_BLEND);
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     enableDebugDraw = true;
-                    if (debugBVHLevel)
+                    if (debugBVHLevel) {
                         bvh.debugDrawLevel(bvhDebugLevel);
-                    if (debugBVHLeaf)
+                    }
+                    if (debugBVHLeaf) {
                         bvh.debugDrawLeaf(bvhDebugLeaf);
+                    }
+                    if (debugSahLevel) {
+                        bvh.debugDrawSahLevel(sahDebugLevel, config.features);
+                    }
                     enableDebugDraw = false;
                     glPopAttrib();
                 }
@@ -363,6 +385,9 @@ int main(int argc, char** argv)
                 screen.clear(glm::vec3(0.0f));
                 renderRayTracing(scene, camera, bvh, screen, config.features);
                 screen.setPixel(0, 0, glm::vec3(1.0f));
+                if (config.features.extra.enableBloomEffect) {
+                    screen.applyBloomFilter(threshold, 2 * boxSize + 1);
+                }
                 screen.draw(); // Takes the image generated using ray tracing and outputs it to the screen using OpenGL.
             } break;
             default:
@@ -396,7 +421,7 @@ int main(int argc, char** argv)
                        }),
             config.scene);
 
-        BvhInterface bvh { &scene };
+        BvhInterface bvh { &scene, config.features };
 
         using clock = std::chrono::high_resolution_clock;
         // Create output directory if it does not exist.
