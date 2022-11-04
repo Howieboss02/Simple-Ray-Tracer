@@ -8,8 +8,19 @@
 #ifdef NDEBUG
 #include <omp.h>
 #endif
-#include "iostream"
 #include "cmath"
+
+void motionBlurDebug(Ray ray, const Scene& scene, const BvhInterface& bvh, const Features& features){
+    glm::vec3 Lo = {0, 0, 0};
+    glm::vec3 trueOrigin = ray.origin;
+    const size_t N = scene.MB_samples;
+    for (size_t t = 0; t < N; t++) {
+        float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
+        ray.origin = trueOrigin + glm::normalize(scene.directionVector) * (float)(scene.time0 + (random)* (scene.time1 - scene.time0));
+        ray.t = {std::numeric_limits<float>::max()};
+        drawRay(ray,{0,1,0});
+    }
+}
 
 void DOF_debug (const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray){
     glm::vec3 ConvergePoint = ray.origin + ray.direction * (float)scene.focalLength;
@@ -72,6 +83,16 @@ glm::vec2 getEnvironmentTexelCoords(glm::vec3 p)
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
+    // Visual debug for motion blur.
+    if(features.extra.enableMotionBlur){
+        motionBlurDebug(ray, scene, bvh, features);
+    }
+
+    // Visual debug for depth of field.
+    if(features.extra.enableDepthOfField){
+        DOF_debug(scene, bvh, features, ray);
+    }
+
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo, features)) {
 
@@ -132,15 +153,28 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
     }
 }
 
+glm::vec3 motionBlur(Ray ray, const Scene& scene, const BvhInterface& bvh, const Features& features){
+    glm::vec3 Lo = {0, 0, 0};
+    glm::vec3 trueOrigin = ray.origin;
+    const int N = scene.MB_samples;
+    for (int t = 0; t < N; t++) {
+        float random = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX));
+        ray.origin = trueOrigin +  glm::normalize(scene.directionVector) * (float)(scene.time0  + random * (scene.time1 - scene.time0) - ((scene.time1 - scene.time0) / 2));
+        ray.t = {std::numeric_limits<float>::max()};
+        Lo += getFinalColor(scene, bvh, ray, features) / (float)N;
+    }
+    return Lo;
+}
+
 glm::vec3 DOF (const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray){
     glm::vec3 Lo = {0.0, 0.0, 0.0};
     glm::vec3 ConvergePoint = ray.origin + ray.direction * (float)scene.focalLength;
     glm::vec3 trueOrigin = ray.origin;
 
     for(int i = 0; i < scene.DOF_samples; i ++){
-        float r1 = ((-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))))) / 2;
-        float r2 = ((-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))))) / 2;
-        float r3 = ((-1.0f) + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(1.0f - (- 1.0f))))) / 2;
+        float r1 = (-1.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1.0f - (-1.0f)))));
+        float r2 = (-1.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1.0f - (-1.0f)))));
+        float r3 = (-1.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1.0f - (-1.0f)))));
         //std::cout<< r1 << " " << r2 << '\n';
         ray.origin = trueOrigin + glm::vec3 {r1 * scene.aperture, r2 * scene.aperture, r3 * scene.aperture};
         ray.direction = glm::normalize(ConvergePoint - ray.origin);
@@ -164,11 +198,14 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            if(features.extra.enableDepthOfField){
+            if(features.extra.enableMotionBlur) {
+                screen.setPixel(x, y, motionBlur(cameraRay, scene, bvh, features));
+            }else if(features.extra.enableDepthOfField) {
                 screen.setPixel(x, y, DOF(scene, bvh, features, cameraRay));
-            }else{
+            }else {
                 screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
             }
         }
     }
 }
+
